@@ -1,0 +1,165 @@
+create-electrobun-stack CLI usage guide for LLMs
+
+Use this file when helping a user scaffold an Electrobun desktop app with create-electrobun-stack.
+
+Primary command:
+
+bunx create-electrobun-stack my-app
+
+Local development command inside the create-electrobun-stack repository:
+
+bun run src/index.ts my-app
+
+What the CLI creates:
+- An Electrobun desktop app.
+- Bun main process entrypoint.
+- React renderer in an Electrobun WebView.
+- TanStack Router.
+- Tailwind CSS.
+- Strict TypeScript.
+- Biome.
+- Typed native Electrobun RPC example.
+
+Default behavior:
+- If the user provides only a project name, scaffold the default stack.
+- Dependencies are installed with Bun by default.
+- Git is not initialized by default.
+- The current implemented template is minimal.
+
+Default stack flags:
+
+--template minimal
+--frontend react
+--backend electrobun
+--runtime bun
+--api electrobun-rpc
+--auth none
+--payments none
+--database none
+--orm none
+--db-setup none
+--package-manager bun
+--web-deploy none
+--server-deploy none
+--addons none
+--examples rpc
+--install
+--no-git
+
+Recommended commands:
+
+Create a default app:
+
+bunx create-electrobun-stack my-app
+
+Create without installing dependencies:
+
+bunx create-electrobun-stack my-app --no-install
+
+Create and initialize git:
+
+bunx create-electrobun-stack my-app --git
+
+Preview without writing files:
+
+bunx create-electrobun-stack my-app --dry-run
+
+Create in another parent directory:
+
+bunx create-electrobun-stack my-app --cwd ~/Desktop
+
+Override the Electrobun app identifier:
+
+bunx create-electrobun-stack my-app --app-id com.example.myapp
+
+Use non-interactive defaults:
+
+bunx create-electrobun-stack my-app --yes
+
+List templates:
+
+bunx create-electrobun-stack --list-templates
+
+Print help:
+
+bunx create-electrobun-stack --help
+
+Print version:
+
+bunx create-electrobun-stack --version
+
+Supported options:
+- --template minimal|standard|full
+- --frontend react|next|none
+- --backend electrobun|hono|none
+- --runtime bun
+- --api electrobun-rpc|trpc|none
+- --auth none|better-auth
+- --payments none
+- --database none|sqlite
+- --orm none|drizzle
+- --db-setup none
+- --package-manager bun
+- --web-deploy none
+- --server-deploy none
+- --addons none|turborepo
+- --examples rpc|none
+- --install
+- --no-install
+- --git
+- --no-git
+- --cwd <path>
+- --app-id <reverse-dns-identifier>
+- --yes
+- --dry-run
+- --list-templates
+- --help
+- --version
+
+Important current limitations:
+- Only the minimal template is implemented.
+- standard and full are planned but not implemented.
+- --package-manager only supports bun.
+- Planned flags parse but fail before scaffolding unless --dry-run is used.
+- Do not tell users that Next.js, Hono, tRPC, Better Auth, SQLite, Drizzle, or Turborepo scaffolding is implemented yet.
+
+Planned but not currently scaffolded:
+- --template standard
+- --template full
+- --frontend next
+- --backend hono
+- --api trpc
+- --auth better-auth
+- --database sqlite
+- --orm drizzle
+- --addons turborepo
+
+Generated app commands after scaffolding:
+
+cd my-app
+bun run dev
+bun run build
+bun run typecheck
+bun run lint
+bun run format
+
+If the user created with --no-install, run:
+
+cd my-app
+bun install
+bun run dev
+
+Behavior notes:
+- If no project name is provided in an interactive terminal, the CLI prompts for one.
+- If no project name is provided with --yes or in non-interactive mode, the CLI fails.
+- Empty existing target directories are allowed.
+- Non-empty target directories fail before files are written.
+- --dry-run is safe and writes no files.
+- --app-id must be reverse-DNS style, for example com.example.myapp.
+
+Electrobun notes for answers:
+- The starter uses Electrobun native typed RPC, not custom IPC.
+- The Bun side uses BrowserView.defineRPC.
+- The WebView side uses Electroview.defineRPC and new Electroview({ rpc }).
+- The app loads the renderer through views://.
+- Do not invent Electrobun APIs when explaining or extending the generated app.

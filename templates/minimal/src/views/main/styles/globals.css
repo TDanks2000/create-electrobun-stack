@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+:root {
+  color: #1b1b18;
+  font-family:
+    ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  background: #f4f0e8;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 32px;
+  background:
+    linear-gradient(135deg, rgba(44, 90, 80, 0.16), transparent 42%),
+    radial-gradient(circle at 82% 18%, rgba(184, 72, 50, 0.2), transparent 30%),
+    #f4f0e8;
+}
+
+.panel {
+  width: min(860px, 100%);
+  border: 1px solid rgba(27, 27, 24, 0.16);
+  border-radius: 8px;
+  padding: clamp(28px, 6vw, 72px);
+  background: rgba(255, 252, 245, 0.84);
+  box-shadow: 0 24px 80px rgba(27, 27, 24, 0.12);
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: #2d6a5c;
+  font-family:
+    ui-monospace, "SFMono-Regular", "Cascadia Code", "Liberation Mono",
+    monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  max-width: 720px;
+  font-size: clamp(2.8rem, 8vw, 6.4rem);
+  font-weight: 760;
+  line-height: 0.95;
+}
+
+.lede {
+  max-width: 620px;
+  margin: 24px 0 0;
+  color: #47443d;
+  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  line-height: 1.6;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 40px;
+  overflow: hidden;
+  border: 1px solid rgba(27, 27, 24, 0.14);
+  border-radius: 8px;
+  background: rgba(27, 27, 24, 0.14);
+}
+
+.grid > div,
+.facts > div {
+  padding: 18px;
+  background: rgba(255, 252, 245, 0.78);
+}
+
+.grid span,
+dt {
+  display: block;
+  color: #716b5e;
+  font-family:
+    ui-monospace, "SFMono-Regular", "Cascadia Code", "Liberation Mono",
+    monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.grid strong,
+dd {
+  display: block;
+  margin-top: 8px;
+  color: #1b1b18;
+  font-size: 1rem;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 1px 0 0;
+  overflow: hidden;
+  border: 1px solid rgba(27, 27, 24, 0.14);
+  border-radius: 8px;
+  background: rgba(27, 27, 24, 0.14);
+}
+
+dd {
+  margin-left: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding: 16px;
+  }
+
+  .grid,
+  .facts {
+    grid-template-columns: 1fr;
+  }
+}
