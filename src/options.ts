@@ -4,17 +4,15 @@ export type StackOptions = {
   addons: "none" | "turborepo";
   api: "electrobun-rpc" | "trpc" | "none";
   auth: "none" | "better-auth";
-  backend: "electrobun" | "hono" | "none";
   database: "none" | "sqlite";
   dbSetup: "none";
   examples: "rpc" | "none";
   frontend: "react" | "next" | "none";
   orm: "none" | "drizzle";
   packageManager: "bun";
-  payments: "none";
   runtime: "bun";
-  serverDeploy: "none";
-  webDeploy: "none";
+  styling: "css" | "tailwindcss";
+  ui: "none" | "shadcn";
 };
 
 export type UnsupportedStackOption = {
@@ -26,34 +24,30 @@ export const defaultStackOptions: StackOptions = {
   addons: "none",
   api: "electrobun-rpc",
   auth: "none",
-  backend: "electrobun",
   database: "none",
   dbSetup: "none",
   examples: "rpc",
   frontend: "react",
   orm: "none",
   packageManager: "bun",
-  payments: "none",
   runtime: "bun",
-  serverDeploy: "none",
-  webDeploy: "none",
+  styling: "tailwindcss",
+  ui: "none",
 };
 
 export const stackOptionChoices = {
   addons: ["none", "turborepo"],
   api: ["electrobun-rpc", "trpc", "none"],
   auth: ["none", "better-auth"],
-  backend: ["electrobun", "hono", "none"],
   database: ["none", "sqlite"],
   dbSetup: ["none"],
   examples: ["rpc", "none"],
   frontend: ["react", "next", "none"],
   orm: ["none", "drizzle"],
   packageManager: ["bun"],
-  payments: ["none"],
   runtime: ["bun"],
-  serverDeploy: ["none"],
-  webDeploy: ["none"],
+  styling: ["tailwindcss", "css"],
+  ui: ["none", "shadcn"],
 } as const satisfies {
   [Key in keyof StackOptions]: Readonly<Array<StackOptions[Key]>>;
 };
@@ -64,17 +58,15 @@ export const stackFlagNames = {
   addons: "addons",
   api: "api",
   auth: "auth",
-  backend: "backend",
   database: "database",
   "db-setup": "dbSetup",
   examples: "examples",
   frontend: "frontend",
   orm: "orm",
   "package-manager": "packageManager",
-  payments: "payments",
   runtime: "runtime",
-  "server-deploy": "serverDeploy",
-  "web-deploy": "webDeploy",
+  styling: "styling",
+  ui: "ui",
 } as const satisfies Record<string, StackOptionName>;
 
 export type StackFlagName = keyof typeof stackFlagNames;
@@ -119,9 +111,6 @@ export const setStackOption = (
     case "auth":
       options.auth = parseStackOptionValue(optionName, value);
       return;
-    case "backend":
-      options.backend = parseStackOptionValue(optionName, value);
-      return;
     case "database":
       options.database = parseStackOptionValue(optionName, value);
       return;
@@ -140,17 +129,14 @@ export const setStackOption = (
     case "packageManager":
       options.packageManager = parseStackOptionValue(optionName, value);
       return;
-    case "payments":
-      options.payments = parseStackOptionValue(optionName, value);
-      return;
     case "runtime":
       options.runtime = parseStackOptionValue(optionName, value);
       return;
-    case "serverDeploy":
-      options.serverDeploy = parseStackOptionValue(optionName, value);
+    case "styling":
+      options.styling = parseStackOptionValue(optionName, value);
       return;
-    case "webDeploy":
-      options.webDeploy = parseStackOptionValue(optionName, value);
+    case "ui":
+      options.ui = parseStackOptionValue(optionName, value);
       return;
   }
 };
@@ -164,13 +150,6 @@ export const getUnsupportedStackOptions = (
     unsupported.push({
       flag: `--frontend ${options.frontend}`,
       note: "Only the React WebView renderer is implemented.",
-    });
-  }
-
-  if (options.backend !== "electrobun") {
-    unsupported.push({
-      flag: `--backend ${options.backend}`,
-      note: "Electrobun apps run their backend-capable code in the Bun main process.",
     });
   }
 
@@ -188,17 +167,10 @@ export const getUnsupportedStackOptions = (
     });
   }
 
-  if (options.payments !== "none") {
-    unsupported.push({
-      flag: `--payments ${options.payments}`,
-      note: "Payments are not part of the desktop starter yet.",
-    });
-  }
-
-  if (options.database !== "none" || options.orm !== "none") {
+  if (options.orm === "drizzle" && options.database !== "sqlite") {
     unsupported.push({
       flag: `--database ${options.database} --orm ${options.orm}`,
-      note: "SQLite and Drizzle belong to the upcoming full template.",
+      note: "Drizzle requires SQLite in the current template.",
     });
   }
 
@@ -206,6 +178,20 @@ export const getUnsupportedStackOptions = (
     unsupported.push({
       flag: `--addons ${options.addons}`,
       note: "Addons are planned after the base templates stabilize.",
+    });
+  }
+
+  if (options.examples === "rpc" && options.api !== "electrobun-rpc") {
+    unsupported.push({
+      flag: `--examples rpc --api ${options.api}`,
+      note: "The RPC example requires the native Electrobun RPC API.",
+    });
+  }
+
+  if (options.ui === "shadcn" && options.styling !== "tailwindcss") {
+    unsupported.push({
+      flag: `--ui shadcn --styling ${options.styling}`,
+      note: "shadcn/ui requires Tailwind CSS in this template.",
     });
   }
 
@@ -228,17 +214,15 @@ export const validateStackOptions = (options: StackOptions): void => {
 export const formatStackOptions = (options: StackOptions): Array<string> => {
   return [
     `frontend=${options.frontend}`,
-    `backend=${options.backend}`,
     `runtime=${options.runtime}`,
     `api=${options.api}`,
+    `styling=${options.styling}`,
+    `ui=${options.ui}`,
     `auth=${options.auth}`,
-    `payments=${options.payments}`,
     `database=${options.database}`,
     `orm=${options.orm}`,
     `dbSetup=${options.dbSetup}`,
     `packageManager=${options.packageManager}`,
-    `webDeploy=${options.webDeploy}`,
-    `serverDeploy=${options.serverDeploy}`,
     `addons=${options.addons}`,
     `examples=${options.examples}`,
   ];

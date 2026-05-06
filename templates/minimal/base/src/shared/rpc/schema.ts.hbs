@@ -1,0 +1,51 @@
+import type { RPCSchema } from "electrobun";
+import type { AppEnvironment{{#if hasDatabase}}, DatabaseStatus{{/if}} } from "../types";
+
+export type MainViewRPC = {
+  bun: RPCSchema<{
+    messages: {
+      {{#if hasRpcExample}}
+      logToBun: {
+        message: string;
+      };
+      {{/if}}
+    };
+    requests: {
+      getEnvironment: {
+        params: null;
+        response: AppEnvironment;
+      };
+      {{#if hasRpcExample}}
+      greet: {
+        params: {
+          name: string;
+        };
+        response: {
+          greeting: string;
+        };
+      };
+      {{/if}}
+      {{#if hasDatabase}}
+      getDatabaseStatus: {
+        params: null;
+        response: DatabaseStatus;
+      };
+      {{/if}}
+    };
+  }>;
+  webview: RPCSchema<{
+    messages: {
+      logToWebview: {
+        message: string;
+      };
+    };
+    requests: {
+      getViewStatus: {
+        params: null;
+        response: {
+          ready: boolean;
+        };
+      };
+    };
+  }>;
+};

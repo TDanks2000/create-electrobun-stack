@@ -1,6 +1,6 @@
 # create-electrobun-stack
 
-`create-electrobun-stack` scaffolds an Electrobun desktop app with Bun, React, TanStack Router, Tailwind CSS, strict TypeScript, Biome, and typed Electrobun RPC.
+`create-electrobun-stack` scaffolds an Electrobun desktop app with Bun, React, TanStack Router, strict TypeScript, Biome, and typed Electrobun RPC. Tailwind CSS is the default styling option; plain CSS is also supported.
 
 The CLI is designed to feel like `better-t-stack`: pass a project name and optional stack flags. If you do not pass stack options, it uses the current default stack.
 
@@ -24,23 +24,22 @@ By default, the CLI:
 - Installs dependencies with `bun install`.
 - Does not initialize git unless `--git` is passed.
 - Uses native typed Electrobun RPC rather than custom IPC.
+- Includes the starter RPC example unless `--examples none` is passed.
 
 ## Default Stack
 
 ```bash
 --template minimal
 --frontend react
---backend electrobun
 --runtime bun
 --api electrobun-rpc
+--styling tailwindcss
+--ui none
 --auth none
---payments none
 --database none
 --orm none
 --db-setup none
 --package-manager bun
---web-deploy none
---server-deploy none
 --addons none
 --examples rpc
 --install
@@ -103,6 +102,6 @@ bun run format
 
 ## Current Scope
 
-The implemented template is `minimal`. The CLI already parses planned stack flags such as `--database sqlite`, `--orm drizzle`, `--auth better-auth`, and `--addons turborepo`, but real scaffolding blocks them until the matching templates exist.
+The implemented template is `minimal`. Tailwind CSS and plain CSS are supported, `--ui shadcn` adds shadcn/ui project config when using Tailwind CSS, SQLite is supported, and `--orm drizzle` adds Drizzle ORM when paired with `--database sqlite`. The default `--examples rpc` renders the starter RPC greeting/logging demo; `--examples none` keeps the typed RPC bridge but omits the demo calls and README section. Auth and addons remain planned.
 
 The CLI uses `@clack/prompts` for interactive prompts, spinners, and cancellation handling.

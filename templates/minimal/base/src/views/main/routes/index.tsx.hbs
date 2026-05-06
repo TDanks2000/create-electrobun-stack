@@ -1,0 +1,143 @@
+import { createRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { APP_NAME } from "../../../shared/constants";
+{{#if hasDatabase}}
+import type { AppEnvironment, DatabaseStatus } from "../../../shared/types";
+{{else}}
+import type { AppEnvironment } from "../../../shared/types";
+{{/if}}
+import { rpc } from "../lib/rpc";
+import { rootRoute } from "./__root";
+
+const Home = () => {
+  const [environment, setEnvironment] = useState<AppEnvironment | null>(null);
+{{#if hasRpcExample}}
+  const [greeting, setGreeting] = useState("Waiting for Bun...");
+{{/if}}
+{{#if hasDatabase}}
+  const [database, setDatabase] = useState<DatabaseStatus | null>(null);
+{{/if}}
+  const isReady = environment !== null;
+
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+{{#if hasDatabase}}
+{{#if hasRpcExample}}
+      const [environmentResult, greetingResult, databaseResult] =
+        await Promise.all([
+          rpc.request.getEnvironment(null),
+          rpc.request.greet({ name: APP_NAME }),
+          rpc.request.getDatabaseStatus(null),
+        ]);
+{{else}}
+      const [environmentResult, databaseResult] = await Promise.all([
+        rpc.request.getEnvironment(null),
+        rpc.request.getDatabaseStatus(null),
+      ]);
+{{/if}}
+{{else}}
+{{#if hasRpcExample}}
+      const [environmentResult, greetingResult] = await Promise.all([
+        rpc.request.getEnvironment(null),
+        rpc.request.greet({ name: APP_NAME }),
+      ]);
+{{else}}
+      const environmentResult = await rpc.request.getEnvironment(null);
+{{/if}}
+{{/if}}
+
+      if (!mounted) {
+        return;
+      }
+
+      setEnvironment(environmentResult);
+{{#if hasRpcExample}}
+      setGreeting(greetingResult.greeting);
+{{/if}}
+{{#if hasDatabase}}
+      setDatabase(databaseResult);
+{{/if}}
+{{#if hasRpcExample}}
+      rpc.send.logToBun({ message: "Renderer loaded and called Bun RPC." });
+{{/if}}
+    };
+
+    void load();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <main className="shell">
+      <div className="ambient-grid" aria-hidden="true" />
+      <section className="panel">
+        <div className="masthead">
+          <p className="eyebrow">Electrobun + React</p>
+          <span className={`runtime-pill ${isReady ? "is-ready" : ""}`}>
+            <span className="pulse" />
+            {isReady ? "Bun RPC online" : "Connecting"}
+          </span>
+        </div>
+        <h1>{APP_NAME}</h1>
+{{#if hasRpcExample}}
+        <p className="lede">{greeting}</p>
+{{else}}
+        <p className="lede">
+          A focused Electrobun desktop app scaffold with typed runtime status
+          wired from Bun to React.
+        </p>
+{{/if}}
+        <div className="grid">
+          <div>
+            <span>Router</span>
+            <strong>TanStack Router</strong>
+          </div>
+          <div>
+            <span>Styles</span>
+            <strong>{{#if hasTailwind}}Tailwind CSS{{else}}Plain CSS{{/if}}</strong>
+          </div>
+          <div>
+            <span>RPC</span>
+            <strong>Typed Electrobun RPC</strong>
+          </div>
+          {{#if hasDatabase}}
+          <div>
+            <span>Database</span>
+            <strong>
+              {database
+                ? `${database.driver} / ${database.records} rows`
+                : "Loading"}
+            </strong>
+          </div>
+          {{/if}}
+        </div>
+        <dl className="facts">
+          <div>
+            <dt>Platform</dt>
+            <dd>{environment?.platform ?? "Loading"}</dd>
+          </div>
+          <div>
+            <dt>Started</dt>
+            <dd>{environment?.startedAt ?? "Loading"}</dd>
+          </div>
+          {{#if hasDatabase}}
+          <div>
+            <dt>Database file</dt>
+            <dd>{database?.path ?? "Loading"}</dd>
+          </div>
+          {{/if}}
+        </dl>
+      </section>
+    </main>
+  );
+};
+
+export const indexRoute = createRoute({
+  component: Home,
+  getParentRoute: () => rootRoute,
+  path: "/",
+});

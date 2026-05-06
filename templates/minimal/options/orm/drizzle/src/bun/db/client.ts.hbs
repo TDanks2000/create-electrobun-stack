@@ -1,0 +1,51 @@
+import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { count } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import type { DatabaseStatus } from "../../shared/types";
+import * as schema from "./schema";
+
+export const databasePath = join(process.cwd(), "data", "app.sqlite");
+
+mkdirSync(dirname(databasePath), { recursive: true });
+
+export const sqlite = new Database(databasePath, {
+  create: true,
+  strict: true,
+});
+
+sqlite.exec(`
+  create table if not exists app_metadata (
+    id integer primary key autoincrement,
+    key text not null unique,
+    value text not null,
+    created_at text not null
+  );
+`);
+
+export const db = drizzle(sqlite, { schema });
+
+const metadataCount =
+  db.select({ value: count() }).from(schema.appMetadata).get()?.value ?? 0;
+
+if (metadataCount === 0) {
+  db.insert(schema.appMetadata)
+    .values({
+      createdAt: new Date().toISOString(),
+      key: "starter",
+      value: "Drizzle is ready.",
+    })
+    .run();
+}
+
+export const getDatabaseStatus = (): DatabaseStatus => {
+  const result =
+    db.select({ value: count() }).from(schema.appMetadata).get()?.value ?? 0;
+
+  return {
+    driver: "drizzle",
+    path: databasePath,
+    records: result,
+  };
+};

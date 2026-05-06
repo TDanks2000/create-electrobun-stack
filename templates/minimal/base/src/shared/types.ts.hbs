@@ -1,0 +1,13 @@
+export type AppEnvironment = {
+  appName: string;
+  platform: NodeJS.Platform;
+  startedAt: string;
+};
+{{#if hasDatabase}}
+
+export type DatabaseStatus = {
+  driver: "bun:sqlite" | "drizzle";
+  path: string;
+  records: number;
+};
+{{/if}}

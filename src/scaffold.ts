@@ -1,5 +1,6 @@
 import { readdir, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
+import type { StackOptions } from "./options";
 import { copyTemplate } from "./utils/copy-template";
 
 export type TemplateName = "minimal" | "standard" | "full";
@@ -8,6 +9,7 @@ export type ScaffoldOptions = {
   appIdentifier: string;
   packageName: string;
   projectName: string;
+  stack: StackOptions;
   targetDirectory: string;
   template: TemplateName;
 };
@@ -66,11 +68,52 @@ const assertWritableTarget = async (targetDirectory: string): Promise<void> => {
   }
 };
 
+const templateData = (options: ScaffoldOptions): Record<string, unknown> => ({
+  appIdentifier: options.appIdentifier,
+  appName: createDisplayName(options.projectName),
+  hasDatabase: options.stack.database === "sqlite",
+  hasDrizzle: options.stack.orm === "drizzle",
+  hasRpcExample: options.stack.examples === "rpc",
+  hasShadcn: options.stack.ui === "shadcn",
+  hasTailwind: options.stack.styling === "tailwindcss",
+  packageName: options.packageName,
+  projectName: options.projectName,
+  stack: options.stack,
+});
+
+const optionTemplateDirectories = (
+  templateDirectory: string,
+  stack: StackOptions,
+): Array<string> => {
+  const directories: Array<string> = [];
+
+  if (stack.database === "sqlite") {
+    directories.push(join(templateDirectory, "options", "database", "sqlite"));
+  }
+
+  if (stack.orm === "drizzle") {
+    directories.push(join(templateDirectory, "options", "orm", "drizzle"));
+  }
+
+  if (stack.styling === "tailwindcss") {
+    directories.push(
+      join(templateDirectory, "options", "styling", "tailwindcss"),
+    );
+  }
+
+  if (stack.ui === "shadcn") {
+    directories.push(join(templateDirectory, "options", "ui", "shadcn"));
+  }
+
+  return directories;
+};
+
 export const scaffoldProject = async (
   options: ScaffoldOptions,
 ): Promise<void> => {
-  const sourceDirectory = join(templateRoot, options.template);
-  const sourceExists = await pathExists(sourceDirectory);
+  const templateDirectory = join(templateRoot, options.template);
+  const baseDirectory = join(templateDirectory, "base");
+  const sourceExists = await pathExists(baseDirectory);
 
   if (!sourceExists) {
     throw new Error(`Template is not implemented yet: ${options.template}`);
@@ -78,14 +121,30 @@ export const scaffoldProject = async (
 
   await assertWritableTarget(options.targetDirectory);
 
+  const replacements = {
+    __APP_IDENTIFIER__: options.appIdentifier,
+    __APP_NAME__: createDisplayName(options.projectName),
+    __PACKAGE_NAME__: options.packageName,
+    __PROJECT_NAME__: options.projectName,
+  };
+  const data = templateData(options);
+
   await copyTemplate({
-    replacements: {
-      __APP_IDENTIFIER__: options.appIdentifier,
-      __APP_NAME__: createDisplayName(options.projectName),
-      __PACKAGE_NAME__: options.packageName,
-      __PROJECT_NAME__: options.projectName,
-    },
-    sourceDirectory,
+    replacements,
+    sourceDirectory: baseDirectory,
     targetDirectory: options.targetDirectory,
+    templateData: data,
   });
+
+  for (const optionDirectory of optionTemplateDirectories(
+    templateDirectory,
+    options.stack,
+  )) {
+    await copyTemplate({
+      replacements,
+      sourceDirectory: optionDirectory,
+      targetDirectory: options.targetDirectory,
+      templateData: data,
+    });
+  }
 };

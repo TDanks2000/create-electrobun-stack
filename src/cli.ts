@@ -5,12 +5,18 @@ import {
   formatStackOptions,
   getUnsupportedStackOptions,
   isStackFlagName,
+  type StackOptionName,
   type StackOptions,
   setStackOption,
+  stackFlagNames,
   validateStackOptions,
 } from "./options";
 import { git, packageManager } from "./package-manager";
-import { promptProjectName } from "./prompts";
+import {
+  promptProjectName,
+  promptStackOptions,
+  promptTemplate,
+} from "./prompts";
 import { scaffoldProject, type TemplateName } from "./scaffold";
 import { formatList } from "./utils/format";
 import { logger } from "./utils/logger";
@@ -29,6 +35,7 @@ type CliOptions = {
   listTemplates: boolean;
   projectName: string | null;
   stack: StackOptions;
+  stackFlags: Set<StackOptionName>;
   template: TemplateName | null;
   version: boolean;
   yes: boolean;
@@ -36,10 +43,17 @@ type CliOptions = {
 
 const templateNames = ["minimal", "standard", "full"] as const;
 const defaultTemplate: TemplateName = "minimal";
-const packageVersion = "0.1.0";
 
 const isTemplateName = (value: string): value is TemplateName =>
   templateNames.some((templateName) => templateName === value);
+
+const getPackageVersion = async (): Promise<string> => {
+  const manifest = (await Bun.file(
+    new URL("../package.json", import.meta.url),
+  ).json()) as { version?: unknown };
+
+  return typeof manifest.version === "string" ? manifest.version : "0.0.0";
+};
 
 const readFlagValue = (
   args: Array<string>,
@@ -91,30 +105,27 @@ const printHelp = (): void => {
   logger.info(`
 Usage:
   bunx create-electrobun-stack my-app
-  bunx create-electrobun-stack my-app --frontend react --backend electrobun --runtime bun
+  bunx create-electrobun-stack my-app --frontend react --runtime bun --styling tailwindcss
   bun run src/index.ts my-app --no-install --git
 
 Defaults:
   --template ${defaultTemplate}
-  --frontend react --backend electrobun --runtime bun --api electrobun-rpc
-  --auth none --payments none --database none --orm none --db-setup none
-  --package-manager bun --web-deploy none --server-deploy none
-  --addons none --examples rpc --install --no-git
+  --frontend react --runtime bun --api electrobun-rpc --styling tailwindcss --ui none
+  --auth none --database none --orm none --db-setup none
+  --package-manager bun --addons none --examples rpc --install --no-git
 
 Options:
   --template minimal|standard|full
   --frontend react|next|none
-  --backend electrobun|hono|none
   --runtime bun
   --api electrobun-rpc|trpc|none
+  --styling tailwindcss|css
+  --ui none|shadcn
   --auth none|better-auth
-  --payments none
   --database none|sqlite
   --orm none|drizzle
   --db-setup none
   --package-manager bun
-  --web-deploy none
-  --server-deploy none
   --addons none|turborepo
   --examples rpc|none
   --install / --no-install
@@ -125,10 +136,12 @@ Options:
   --dry-run
   --list-templates
   --version
-  --help`);
+  --help
+
+Interactive mode asks for omitted stack choices. Use --yes to accept defaults.`);
 };
 
-const parseArgs = (args: Array<string>): CliOptions => {
+export const parseArgs = (args: Array<string>): CliOptions => {
   let appIdentifier: string | null = null;
   let cwd = process.cwd();
   let dryRun = false;
@@ -141,6 +154,7 @@ const parseArgs = (args: Array<string>): CliOptions => {
   let version = false;
   let yes = false;
   const stack: StackOptions = { ...defaultStackOptions };
+  const stackFlags = new Set<StackOptionName>();
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -247,6 +261,7 @@ const parseArgs = (args: Array<string>): CliOptions => {
           inlineValue ?? readRequiredFlagValue(args, index, `--${rawFlag}`);
 
         setStackOption(stack, rawFlag, value);
+        stackFlags.add(stackFlagNames[rawFlag]);
 
         if (!inlineValue) {
           index += 1;
@@ -279,6 +294,7 @@ const parseArgs = (args: Array<string>): CliOptions => {
     listTemplates,
     projectName,
     stack,
+    stackFlags,
     template,
     version,
     yes,
@@ -306,7 +322,7 @@ export const runCli = async (args: Array<string>): Promise<void> => {
     const options = parseArgs(args);
 
     if (options.version) {
-      logger.info(packageVersion);
+      logger.info(await getPackageVersion());
       return;
     }
 
@@ -328,6 +344,12 @@ export const runCli = async (args: Array<string>): Promise<void> => {
       throw new Error("Project name is required in non-interactive mode.");
     }
 
+    const shouldPrompt = !options.yes && process.stdin.isTTY;
+
+    if (shouldPrompt) {
+      intro("create-electrobun-stack");
+    }
+
     const projectName = options.projectName ?? (await promptProjectName());
     const validation = validateProjectName(projectName);
 
@@ -335,7 +357,12 @@ export const runCli = async (args: Array<string>): Promise<void> => {
       throw new Error(validation.message);
     }
 
-    const template = options.template ?? defaultTemplate;
+    const template =
+      options.template ??
+      (shouldPrompt ? await promptTemplate(defaultTemplate) : defaultTemplate);
+    const stack = shouldPrompt
+      ? await promptStackOptions(options.stack, options.stackFlags)
+      : options.stack;
     const packageName = createPackageName(projectName);
     const targetDirectory = resolve(options.cwd, projectName);
     const appIdentifier =
@@ -350,12 +377,17 @@ export const runCli = async (args: Array<string>): Promise<void> => {
       );
     }
 
-    intro("create-electrobun-stack");
+    if (!shouldPrompt) {
+      intro("create-electrobun-stack");
+    }
+
     note(
       [
         `Project: ${projectName}`,
         `Template: ${template}`,
         "Package manager: bun",
+        "Stack:",
+        ...formatStackOptions(stack).map((item) => `  ${item}`),
         `Install: ${options.install ? "yes" : "no"}`,
         `Git: ${options.git ? "yes" : "no"}`,
       ].join("\n"),
@@ -363,7 +395,7 @@ export const runCli = async (args: Array<string>): Promise<void> => {
     );
 
     if (options.dryRun) {
-      const unsupported = getUnsupportedStackOptions(options.stack);
+      const unsupported = getUnsupportedStackOptions(stack);
 
       logger.box([
         "Dry run:",
@@ -371,7 +403,7 @@ export const runCli = async (args: Array<string>): Promise<void> => {
         `package: ${packageName}`,
         `identifier: ${appIdentifier}`,
         "stack:",
-        ...formatStackOptions(options.stack).map((item) => `  ${item}`),
+        ...formatStackOptions(stack).map((item) => `  ${item}`),
         unsupported.length > 0
           ? `planned: ${unsupported.map((item) => item.flag).join(", ")}`
           : "planned: none",
@@ -380,13 +412,14 @@ export const runCli = async (args: Array<string>): Promise<void> => {
       return;
     }
 
-    validateStackOptions(options.stack);
+    validateStackOptions(stack);
 
     await runStep("Scaffolding files", () =>
       scaffoldProject({
         appIdentifier,
         packageName,
         projectName,
+        stack,
         targetDirectory,
         template,
       }),

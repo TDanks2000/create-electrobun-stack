@@ -1,0 +1,35 @@
+import { BrowserView } from "electrobun/bun";
+import type { MainViewRPC } from "../../shared/rpc/types";
+{{#if hasDatabase}}
+{{#if hasRpcExample}}
+import { getDatabaseStatus, getEnvironment, greet, logToBun } from "./handlers";
+{{else}}
+import { getDatabaseStatus, getEnvironment } from "./handlers";
+{{/if}}
+{{else}}
+{{#if hasRpcExample}}
+import { getEnvironment, greet, logToBun } from "./handlers";
+{{else}}
+import { getEnvironment } from "./handlers";
+{{/if}}
+{{/if}}
+
+export const mainViewRPC = BrowserView.defineRPC<MainViewRPC>({
+  handlers: {
+    messages: {
+{{#if hasRpcExample}}
+      logToBun,
+{{/if}}
+    },
+    requests: {
+{{#if hasDatabase}}
+      getDatabaseStatus,
+{{/if}}
+      getEnvironment,
+{{#if hasRpcExample}}
+      greet,
+{{/if}}
+    },
+  },
+  maxRequestTime: 5000,
+});

@@ -15,32 +15,34 @@ What the CLI creates:
 - Bun main process entrypoint.
 - React renderer in an Electrobun WebView.
 - TanStack Router.
-- Tailwind CSS.
+- Tailwind CSS by default, or plain CSS when requested.
 - Strict TypeScript.
 - Biome.
-- Typed native Electrobun RPC example.
+- Typed native Electrobun RPC bridge.
 
 Default behavior:
 - If the user provides only a project name, scaffold the default stack.
 - Dependencies are installed with Bun by default.
 - Git is not initialized by default.
 - The current implemented template is minimal.
+- SQLite is implemented for the minimal template.
+- Drizzle is implemented when paired with --database sqlite.
+- The default --examples rpc renders a starter RPC greeting/logging demo.
+- --examples none keeps the RPC bridge but omits the demo calls and generated README section.
 
 Default stack flags:
 
 --template minimal
 --frontend react
---backend electrobun
 --runtime bun
 --api electrobun-rpc
+--styling tailwindcss
+--ui none
 --auth none
---payments none
 --database none
 --orm none
 --db-setup none
 --package-manager bun
---web-deploy none
---server-deploy none
 --addons none
 --examples rpc
 --install
@@ -91,17 +93,15 @@ bunx create-electrobun-stack --version
 Supported options:
 - --template minimal|standard|full
 - --frontend react|next|none
-- --backend electrobun|hono|none
 - --runtime bun
 - --api electrobun-rpc|trpc|none
+- --styling tailwindcss|css
+- --ui none|shadcn
 - --auth none|better-auth
-- --payments none
 - --database none|sqlite
 - --orm none|drizzle
 - --db-setup none
 - --package-manager bun
-- --web-deploy none
-- --server-deploy none
 - --addons none|turborepo
 - --examples rpc|none
 - --install
@@ -121,17 +121,14 @@ Important current limitations:
 - standard and full are planned but not implemented.
 - --package-manager only supports bun.
 - Planned flags parse but fail before scaffolding unless --dry-run is used.
-- Do not tell users that Next.js, Hono, tRPC, Better Auth, SQLite, Drizzle, or Turborepo scaffolding is implemented yet.
+- Do not tell users that Next.js, tRPC, Better Auth, or Turborepo scaffolding is implemented yet.
 
 Planned but not currently scaffolded:
 - --template standard
 - --template full
 - --frontend next
-- --backend hono
 - --api trpc
 - --auth better-auth
-- --database sqlite
-- --orm drizzle
 - --addons turborepo
 
 Generated app commands after scaffolding:

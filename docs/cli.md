@@ -36,19 +36,17 @@ These options intentionally mirror the shape of stack scaffolders like `better-t
 | --- | --- | --- |
 | `--template` | `minimal`, `standard`, `full` | `minimal` implemented |
 | `--frontend` | `react`, `next`, `none` | `react` implemented |
-| `--backend` | `electrobun`, `hono`, `none` | `electrobun` implemented |
 | `--runtime` | `bun` | implemented |
 | `--api` | `electrobun-rpc`, `trpc`, `none` | `electrobun-rpc` implemented |
+| `--styling` | `tailwindcss`, `css` | implemented |
+| `--ui` | `none`, `shadcn` | `shadcn` implemented with Tailwind CSS |
 | `--auth` | `none`, `better-auth` | `none` implemented |
-| `--payments` | `none` | implemented |
-| `--database` | `none`, `sqlite` | `none` implemented |
-| `--orm` | `none`, `drizzle` | `none` implemented |
+| `--database` | `none`, `sqlite` | implemented |
+| `--orm` | `none`, `drizzle` | `drizzle` implemented with SQLite |
 | `--db-setup` | `none` | implemented |
 | `--package-manager` | `bun` | implemented |
-| `--web-deploy` | `none` | implemented |
-| `--server-deploy` | `none` | implemented |
 | `--addons` | `none`, `turborepo` | `none` implemented |
-| `--examples` | `rpc`, `none` | parsed; minimal includes RPC example |
+| `--examples` | `rpc`, `none` | `rpc` renders the starter RPC greeting/logging demo; `none` omits demo calls |
 
 ## Examples
 
@@ -63,17 +61,15 @@ Explicit supported stack:
 ```bash
 bunx create-electrobun-stack my-app \
   --frontend react \
-  --backend electrobun \
   --runtime bun \
   --api electrobun-rpc \
+  --styling tailwindcss \
+  --ui shadcn \
   --auth none \
-  --payments none \
   --database none \
   --orm none \
   --db-setup none \
   --package-manager bun \
-  --web-deploy none \
-  --server-deploy none \
   --addons none \
   --examples rpc \
   --install
@@ -84,13 +80,26 @@ Preview planned full-stack options:
 ```bash
 bunx create-electrobun-stack my-app \
   --frontend react \
-  --backend electrobun \
-  --database sqlite \
-  --orm drizzle \
+  --auth better-auth \
+  --addons turborepo \
   --dry-run
 ```
 
 Without `--dry-run`, planned but unimplemented options fail before files are written.
+
+Create with SQLite and Drizzle:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --database sqlite \
+  --orm drizzle
+```
+
+Create without the starter RPC demo:
+
+```bash
+bunx create-electrobun-stack my-app --examples none
+```
 
 Create in another parent directory:
 

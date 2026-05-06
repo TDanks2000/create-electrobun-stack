@@ -1,0 +1,50 @@
+import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import type { DatabaseStatus } from "../../shared/types";
+
+export const databasePath = join(process.cwd(), "data", "app.sqlite");
+
+mkdirSync(dirname(databasePath), { recursive: true });
+
+export const sqlite = new Database(databasePath, {
+  create: true,
+  strict: true,
+});
+
+sqlite.exec(`
+  create table if not exists app_metadata (
+    id integer primary key autoincrement,
+    key text not null unique,
+    value text not null,
+    created_at text not null
+  );
+`);
+
+const metadataCount = sqlite
+  .query("select count(*) as count from app_metadata")
+  .get() as { count: number };
+
+if (metadataCount.count === 0) {
+  sqlite
+    .query(
+      "insert into app_metadata (key, value, created_at) values ($key, $value, $createdAt)",
+    )
+    .run({
+      createdAt: new Date().toISOString(),
+      key: "starter",
+      value: "SQLite is ready.",
+    });
+}
+
+export const getDatabaseStatus = (): DatabaseStatus => {
+  const result = sqlite
+    .query("select count(*) as count from app_metadata")
+    .get() as { count: number };
+
+  return {
+    driver: "bun:sqlite",
+    path: databasePath,
+    records: result.count,
+  };
+};

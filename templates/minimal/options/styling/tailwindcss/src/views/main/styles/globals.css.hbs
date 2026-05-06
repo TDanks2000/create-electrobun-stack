@@ -1,0 +1,12 @@
+@import "tailwindcss";
+{{#if hasShadcn}}
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+{{/if}}
+@import "./app.css";
+
+@source "../**/*.{ts,tsx}";
+
+{{#if hasShadcn}}
+@custom-variant dark (&:is(.dark *));
+{{/if}}
