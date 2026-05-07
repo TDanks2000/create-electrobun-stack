@@ -1,3 +1,4 @@
+{{#if hasElectrobunRpc}}
 import type { RPCSchema } from "electrobun";
 import type { AppEnvironment{{#if hasDatabase}}, DatabaseStatus{{/if}} } from "../types";
 
@@ -49,3 +50,6 @@ export type MainViewRPC = {
     };
   }>;
 };
+{{else}}
+export type MainViewRPC = never;
+{{/if}}

@@ -1,12 +1,21 @@
 import { readdir, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
+import { createCesManifest, serializeCesManifest } from "./manifest";
 import type { StackOptions } from "./options";
+import { getPackageVersion } from "./package-info";
+import {
+  getInstallCommand,
+  getPackageManagerSpec,
+  getRunCommand,
+} from "./package-manager";
 import { copyTemplate } from "./utils/copy-template";
 
 export type TemplateName = "minimal" | "standard" | "full";
 
 export type ScaffoldOptions = {
   appIdentifier: string;
+  git?: boolean;
+  install?: boolean;
   packageName: string;
   projectName: string;
   stack: StackOptions;
@@ -19,6 +28,12 @@ const templateRoot = join(
   "..",
   "templates",
 );
+
+const templateSources = {
+  full: "minimal",
+  minimal: "minimal",
+  standard: "minimal",
+} as const satisfies Record<TemplateName, string>;
 
 const createDisplayName = (projectName: string): string =>
   projectName
@@ -71,11 +86,33 @@ const assertWritableTarget = async (targetDirectory: string): Promise<void> => {
 const templateData = (options: ScaffoldOptions): Record<string, unknown> => ({
   appIdentifier: options.appIdentifier,
   appName: createDisplayName(options.projectName),
+  hasAppLock: options.stack.auth === "app-lock",
+  hasAppMenu: options.stack.appMenu === "edit",
   hasDatabase: options.stack.database === "sqlite",
   hasDrizzle: options.stack.orm === "drizzle",
+  hasElectrobunRpc: options.stack.api === "electrobun-rpc",
+  hasHiddenInsetTitlebar: options.stack.windowStyle === "hidden-inset",
+  hasNavigationGuard: options.stack.navigation === "local-only",
   hasRpcExample: options.stack.examples === "rpc",
+  hasSeedData: options.stack.dbSetup === "seed",
   hasShadcn: options.stack.ui === "shadcn",
+  hasDatabaseSettings: options.stack.settings === "database",
+  hasJsonSettings: options.stack.settings === "json",
+  hasSettings: options.stack.settings !== "none",
   hasTailwind: options.stack.styling === "tailwindcss",
+  hasTesting: options.stack.testing === "bun",
+  hasTurborepo: options.stack.addons === "turborepo",
+  packageManagerSpec: getPackageManagerSpec(options.stack.packageManager),
+  commands: {
+    build: getRunCommand(options.stack.packageManager, "build"),
+    check: getRunCommand(options.stack.packageManager, "check"),
+    dev: getRunCommand(options.stack.packageManager, "dev"),
+    format: getRunCommand(options.stack.packageManager, "format"),
+    install: getInstallCommand(options.stack.packageManager),
+    lint: getRunCommand(options.stack.packageManager, "lint"),
+    test: getRunCommand(options.stack.packageManager, "test"),
+    typecheck: getRunCommand(options.stack.packageManager, "typecheck"),
+  },
   packageName: options.packageName,
   projectName: options.projectName,
   stack: options.stack,
@@ -105,18 +142,41 @@ const optionTemplateDirectories = (
     directories.push(join(templateDirectory, "options", "ui", "shadcn"));
   }
 
+  if (stack.settings === "json") {
+    directories.push(join(templateDirectory, "options", "settings", "json"));
+  }
+
+  if (stack.settings === "database") {
+    directories.push(
+      join(templateDirectory, "options", "settings", "database"),
+    );
+  }
+
+  if (stack.appMenu === "edit") {
+    directories.push(join(templateDirectory, "options", "app-menu", "edit"));
+  }
+
+  if (stack.addons === "turborepo") {
+    directories.push(join(templateDirectory, "options", "addons", "turborepo"));
+  }
+
+  if (stack.testing === "bun") {
+    directories.push(join(templateDirectory, "options", "testing", "bun"));
+  }
+
   return directories;
 };
 
 export const scaffoldProject = async (
   options: ScaffoldOptions,
 ): Promise<void> => {
-  const templateDirectory = join(templateRoot, options.template);
+  const sourceTemplate = templateSources[options.template];
+  const templateDirectory = join(templateRoot, sourceTemplate);
   const baseDirectory = join(templateDirectory, "base");
   const sourceExists = await pathExists(baseDirectory);
 
   if (!sourceExists) {
-    throw new Error(`Template is not implemented yet: ${options.template}`);
+    throw new Error(`Template source is missing: ${options.template}`);
   }
 
   await assertWritableTarget(options.targetDirectory);
@@ -128,6 +188,7 @@ export const scaffoldProject = async (
     __PROJECT_NAME__: options.projectName,
   };
   const data = templateData(options);
+  const generatorVersion = await getPackageVersion();
 
   await copyTemplate({
     replacements,
@@ -147,4 +208,20 @@ export const scaffoldProject = async (
       templateData: data,
     });
   }
+
+  await Bun.write(
+    join(options.targetDirectory, "ces.json"),
+    serializeCesManifest(
+      createCesManifest({
+        appIdentifier: options.appIdentifier,
+        generatorVersion,
+        git: options.git ?? false,
+        install: options.install ?? false,
+        packageName: options.packageName,
+        projectName: options.projectName,
+        stack: options.stack,
+        template: options.template,
+      }),
+    ),
+  );
 };

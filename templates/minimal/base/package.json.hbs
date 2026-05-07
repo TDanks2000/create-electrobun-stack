@@ -3,12 +3,17 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
+  "packageManager": "{{packageManagerSpec}}",
   "scripts": {
     "dev": "vite build && concurrently -k -n vite,electrobun \"vite build --watch\" \"electrobun dev\"",
-    "build": "vite build && electrobun build",
+    "build": "vite build && electrobun build --env={{stack.buildEnv}} --targets={{stack.buildTargets}}",
+{{#if hasTesting}}
+    "test": "bun test",
+{{/if}}
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
-    "format": "biome check --write ."{{#if hasDrizzle}},
+    "format": "biome check --write ."{{#if hasTurborepo}},
+    "check": "turbo run typecheck lint{{#if hasTesting}} test{{/if}}"{{/if}}{{#if hasDrizzle}},
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio"{{/if}}
   },
@@ -43,6 +48,9 @@
 {{/if}}
 {{#if hasDrizzle}}
     "drizzle-kit": "^0.31.9",
+{{/if}}
+{{#if hasTurborepo}}
+    "turbo": "^2.6.3",
 {{/if}}
     "typescript": "^5.9.3",
     "vite": "^7.2.7"

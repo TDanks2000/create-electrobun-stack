@@ -1,0 +1,33 @@
+import { describe, expect, test } from "bun:test";
+
+type GeneratedManifest = {
+  features: {
+    bunTest: boolean;
+    electrobun: boolean;
+  };
+  packageName: string;
+  projectName: string;
+  testing: string;
+};
+
+type PackageJson = {
+  name: string;
+};
+
+const readJson = async <Value>(path: string): Promise<Value> =>
+  (await Bun.file(path).json()) as Value;
+
+describe("generated project manifest", () => {
+  test("matches the package and enabled testing stack", async () => {
+    const [manifest, packageJson] = await Promise.all([
+      readJson<GeneratedManifest>("ces.json"),
+      readJson<PackageJson>("package.json"),
+    ]);
+
+    expect(manifest.projectName).toBe("__PROJECT_NAME__");
+    expect(manifest.packageName).toBe(packageJson.name);
+    expect(manifest.testing).toBe("bun");
+    expect(manifest.features.bunTest).toBe(true);
+    expect(manifest.features.electrobun).toBe(true);
+  });
+});

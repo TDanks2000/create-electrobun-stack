@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "addons": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "api": {
+      "enum": ["electrobun-rpc", "none"]
+    },
+    "appMenu": {
+      "enum": ["edit", "none"]
+    },
+    "appIdentifier": {
+      "type": "string"
+    },
+    "auth": {
+      "enum": ["none", "app-lock"]
+    },
+    "buildEnv": {
+      "enum": ["dev", "canary", "stable"]
+    },
+    "buildTargets": {
+      "enum": ["current", "all"]
+    },
+    "createdAt": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "database": {
+      "enum": ["none", "sqlite"]
+    },
+    "dbSetup": {
+      "enum": ["none", "seed"]
+    },
+    "examples": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "features": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "type": "object"
+    },
+    "frontend": {
+      "items": {
+        "enum": ["react"]
+      },
+      "type": "array"
+    },
+    "git": {
+      "type": "boolean"
+    },
+    "install": {
+      "type": "boolean"
+    },
+    "orm": {
+      "enum": ["none", "drizzle"]
+    },
+    "packageManager": {
+      "enum": ["bun", "npm", "pnpm", "yarn"]
+    },
+    "packageName": {
+      "type": "string"
+    },
+    "projectName": {
+      "type": "string"
+    },
+    "reproducibleCommand": {
+      "type": "string"
+    },
+    "runtime": {
+      "enum": ["bun"]
+    },
+    "styling": {
+      "enum": ["tailwindcss", "css"]
+    },
+    "template": {
+      "enum": ["minimal", "standard", "full"]
+    },
+    "testing": {
+      "enum": ["bun", "none"]
+    },
+    "ui": {
+      "enum": ["none", "shadcn"]
+    },
+    "navigation": {
+      "enum": ["local-only", "none"]
+    },
+    "windowStyle": {
+      "enum": ["native", "hidden-inset"]
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "$schema",
+    "version",
+    "createdAt",
+    "reproducibleCommand",
+    "projectName",
+    "packageName",
+    "appIdentifier",
+    "template",
+    "database",
+    "orm",
+    "runtime",
+    "buildEnv",
+    "buildTargets",
+    "frontend",
+    "styling",
+    "ui",
+    "appMenu",
+    "addons",
+    "examples",
+    "auth",
+    "packageManager",
+    "dbSetup",
+    "api",
+    "navigation",
+    "windowStyle",
+    "testing",
+    "git",
+    "install",
+    "features"
+  ],
+  "title": "create-electrobun-stack manifest",
+  "type": "object"
+}

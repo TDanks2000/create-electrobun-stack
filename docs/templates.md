@@ -13,8 +13,15 @@ Includes:
 - Tailwind CSS or plain CSS
 - Strict TypeScript
 - Biome
+- Electrobun Edit menu through `--app-menu edit`
+- Local navigation guard through `--navigation local-only`
+- Native or hidden-inset window chrome through `--window-style`
+- Optional Bun test scaffold through `--testing bun`
+- Optional app lock through `--auth app-lock`
+- Optional Turborepo config through `--addons turborepo`
 - Typed Electrobun RPC bridge
 - Optional starter RPC example through `--examples rpc`
+- Root `ces.json` manifest with Better-T-Stack-style stack metadata and feature flags
 
 Template source structure:
 
@@ -23,24 +30,43 @@ templates/minimal/
   base/
     **/*.hbs
   options/
+    app-menu/
+      edit/
+        **/*.hbs
+    addons/
+      turborepo/
+        **/*.hbs
     database/
       sqlite/
         **/*.hbs
     orm/
       drizzle/
         **/*.hbs
+    testing/
+      bun/
+        **/*.hbs
 ```
 
 `base` is always rendered first. Option directories are rendered afterward in stack order, so an option can add new files or override a base/lower-level option file at the same output path. For example, `database/sqlite` adds the raw SQLite client, and `orm/drizzle` overlays that client with a Drizzle-backed version plus `schema.ts` and `drizzle.config.ts`.
+
+The default `--app-menu edit` adds an Electrobun `ApplicationMenu` with standard Edit roles so native copy, paste, undo, redo, and select-all shortcuts work. The default `--navigation local-only` blocks navigation away from bundled `views://` content. Passing `--window-style hidden-inset` adds Electrobun's `titleBarStyle: "hiddenInset"` window option plus a draggable header.
+
+The default `--testing bun` adds `bun test`, includes `tests` in `tsconfig.json`, and renders a generated manifest smoke test. Passing `--testing none` omits the test script and test files.
+
+Passing `--api none` omits BrowserWindow RPC wiring. Passing `--auth app-lock` renders a local app-name lock screen. Passing `--db-setup seed` with SQLite inserts starter metadata when the database is empty. Passing `--addons turborepo` adds `turbo.json`, a `check` script, and the Turbo dev dependency.
 
 The default `--examples rpc` renders a greeting/logging RPC demo in the route, handlers, shared RPC schema, and generated README. Passing `--examples none` keeps the typed RPC bridge and environment request but omits that demo surface.
 
 Generated structure:
 
 ```txt
+ces.json
+tests/
+  manifest.test.ts
 src/
   bun/
     index.ts
+    menu.ts
     window.ts
     rpc/
       handlers.ts
@@ -68,7 +94,7 @@ src/
 
 ## standard
 
-Status: planned.
+Status: implemented profile.
 
 Planned additions:
 
@@ -80,7 +106,7 @@ Planned additions:
 
 ## full
 
-Status: planned.
+Status: implemented profile.
 
 Planned additions:
 

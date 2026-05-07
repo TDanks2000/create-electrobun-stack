@@ -1,3 +1,4 @@
+{{#if hasElectrobunRpc}}
 import { BrowserView } from "electrobun/bun";
 import type { MainViewRPC } from "../../shared/rpc/types";
 {{#if hasDatabase}}
@@ -33,3 +34,6 @@ export const mainViewRPC = BrowserView.defineRPC<MainViewRPC>({
   },
   maxRequestTime: 5000,
 });
+{{else}}
+export const mainViewRPC = null;
+{{/if}}

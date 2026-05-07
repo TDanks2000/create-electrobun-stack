@@ -5,12 +5,18 @@ Generated with `create-electrobun-stack`.
 ## Commands
 
 ```bash
-bun install
-bun run dev
-bun run build
-bun run typecheck
-bun run lint
-bun run format
+{{commands.install}}
+{{commands.dev}}
+{{commands.build}}
+{{#if hasTesting}}
+{{commands.test}}
+{{/if}}
+{{commands.typecheck}}
+{{commands.lint}}
+{{commands.format}}
+{{#if hasTurborepo}}
+{{commands.check}}
+{{/if}}
 ```
 
 ## Stack
@@ -20,15 +26,27 @@ bun run format
 - React + Vite
 - TanStack Router
 - {{#if hasTailwind}}Tailwind CSS{{else}}Plain CSS{{/if}}
-- Typed Electrobun RPC
+- {{#if hasElectrobunRpc}}Typed Electrobun RPC{{else}}Static renderer API{{/if}}
+- Electrobun {{#if hasAppMenu}}Edit menu{{else}}app menu disabled{{/if}}
+- {{#if hasNavigationGuard}}Local-only navigation guard{{else}}Renderer navigation guard disabled{{/if}}
+- {{#if hasHiddenInsetTitlebar}}Hidden inset titlebar{{else}}Native window chrome{{/if}}
+- {{stack.packageManager}} package manager metadata
 - Strict TypeScript
 - Biome
+{{#if hasTesting}}
+- Bun test
+{{/if}}
+{{#if hasTurborepo}}
+- Turborepo task runner
+{{/if}}
 {{#if hasDatabase}}
 - SQLite
 {{/if}}
 {{#if hasDrizzle}}
 - Drizzle ORM
 {{/if}}
+
+`ces.json` records the generated stack, reproducible command, and feature flags for future `create-electrobun-stack` commands.
 {{#if hasRpcExample}}
 
 ## RPC Example

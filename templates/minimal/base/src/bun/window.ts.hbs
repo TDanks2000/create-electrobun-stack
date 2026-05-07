@@ -1,6 +1,48 @@
 import { BrowserWindow, Utils } from "electrobun/bun";
 import { APP_NAME } from "../shared/constants";
+{{#if hasElectrobunRpc}}
 import { mainViewRPC } from "./rpc/router";
+{{/if}}
+{{#if hasNavigationGuard}}
+
+const isAllowedNavigation = (url: string): boolean =>
+  url.startsWith("views://") || url === "about:blank";
+
+type NavigationEvent = {
+  data?: {
+    detail?: unknown;
+    url?: unknown;
+  };
+  response?: {
+    allow: boolean;
+  };
+};
+
+const isNavigationEvent = (event: unknown): event is NavigationEvent =>
+  typeof event === "object" && event !== null;
+
+const getNavigationUrl = (event: unknown): string | null => {
+  if (!isNavigationEvent(event)) {
+    return null;
+  }
+
+  const data = event.data;
+
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+
+  if (typeof data.detail === "string") {
+    return data.detail;
+  }
+
+  if (typeof data.url === "string") {
+    return data.url;
+  }
+
+  return null;
+};
+{{/if}}
 
 export const createMainWindow = (): BrowserWindow => {
   const window = new BrowserWindow({
@@ -10,11 +52,33 @@ export const createMainWindow = (): BrowserWindow => {
       x: 120,
       y: 120,
     },
+{{#if hasHiddenInsetTitlebar}}
+    styleMask: {
+      Closable: true,
+      FullSizeContentView: true,
+      Miniaturizable: true,
+      Resizable: true,
+      Titled: true,
+    },
+    titleBarStyle: "hiddenInset",
+{{/if}}
+{{#if hasElectrobunRpc}}
     rpc: mainViewRPC,
+{{/if}}
     title: APP_NAME,
     url: "views://main/index.html",
   });
 
+{{#if hasNavigationGuard}}
+  window.webview.on("will-navigate", (event: unknown) => {
+    const url = getNavigationUrl(event);
+
+    if ((!url || !isAllowedNavigation(url)) && isNavigationEvent(event)) {
+      event.response = { allow: false };
+    }
+  });
+
+{{/if}}
   window.on("close", () => {
     Utils.quit();
   });

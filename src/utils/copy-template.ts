@@ -1,5 +1,6 @@
 import { join, relative } from "node:path";
 import Handlebars from "handlebars";
+import { collapseStringArrays } from "./json-format";
 
 type CopyTemplateOptions = {
   replacements: Record<string, string>;
@@ -47,6 +48,10 @@ const prepareTextContent = (
     : content;
   const result = replacePlaceholders(templateResult, replacements);
 
+  if (source.endsWith(".css") || source.endsWith(".css.hbs")) {
+    return result.replace(/\n{3,}/g, "\n\n").replace(/\n*$/, "\n");
+  }
+
   if (!source.endsWith("biome.json") && !source.endsWith("biome.json.hbs")) {
     return result;
   }
@@ -60,7 +65,7 @@ const prepareTextContent = (
       config.root = true;
     }
 
-    return `${JSON.stringify(config, null, 2)}\n`;
+    return `${collapseStringArrays(JSON.stringify(config, null, 2))}\n`;
   }
 
   return result;

@@ -25,6 +25,7 @@ const metadataCount = sqlite
   .query("select count(*) as count from app_metadata")
   .get() as { count: number };
 
+{{#if hasSeedData}}
 if (metadataCount.count === 0) {
   sqlite
     .query(
@@ -36,6 +37,7 @@ if (metadataCount.count === 0) {
       value: "SQLite is ready.",
     });
 }
+{{/if}}
 
 export const getDatabaseStatus = (): DatabaseStatus => {
   const result = sqlite

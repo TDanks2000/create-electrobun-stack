@@ -1,3 +1,4 @@
+{{#if hasElectrobunRpc}}
 import { Electroview } from "electrobun/view";
 import type { MainViewRPC } from "../../../shared/rpc/types";
 
@@ -23,3 +24,6 @@ if (!rpcClient) {
 }
 
 export const rpc = rpcClient;
+{{else}}
+export const electroview = null;
+{{/if}}

@@ -29,6 +29,7 @@ export const db = drizzle(sqlite, { schema });
 const metadataCount =
   db.select({ value: count() }).from(schema.appMetadata).get()?.value ?? 0;
 
+{{#if hasSeedData}}
 if (metadataCount === 0) {
   db.insert(schema.appMetadata)
     .values({
@@ -38,6 +39,7 @@ if (metadataCount === 0) {
     })
     .run();
 }
+{{/if}}
 
 export const getDatabaseStatus = (): DatabaseStatus => {
   const result =

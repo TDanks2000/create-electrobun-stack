@@ -11,7 +11,13 @@ import {
   stackFlagNames,
   validateStackOptions,
 } from "./options";
-import { git, packageManager } from "./package-manager";
+import { getPackageVersion } from "./package-info";
+import {
+  getInstallCommand,
+  getRunCommand,
+  git,
+  packageManager,
+} from "./package-manager";
 import {
   promptProjectName,
   promptStackOptions,
@@ -46,14 +52,6 @@ const defaultTemplate: TemplateName = "minimal";
 
 const isTemplateName = (value: string): value is TemplateName =>
   templateNames.some((templateName) => templateName === value);
-
-const getPackageVersion = async (): Promise<string> => {
-  const manifest = (await Bun.file(
-    new URL("../package.json", import.meta.url),
-  ).json()) as { version?: unknown };
-
-  return typeof manifest.version === "string" ? manifest.version : "0.0.0";
-};
 
 const readFlagValue = (
   args: Array<string>,
@@ -96,8 +94,8 @@ const createAppIdentifier = (packageName: string): string => {
 const printTemplates = (): void => {
   logger.heading("Templates");
   logger.info("  minimal   implemented, default");
-  logger.info("  standard  planned");
-  logger.info("  full      planned");
+  logger.info("  standard  implemented profile");
+  logger.info("  full      implemented profile");
 };
 
 const printHelp = (): void => {
@@ -110,22 +108,31 @@ Usage:
 
 Defaults:
   --template ${defaultTemplate}
-  --frontend react --runtime bun --api electrobun-rpc --styling tailwindcss --ui none
+  --frontend react --runtime bun --build-env dev --build-targets current
+  --api electrobun-rpc --navigation local-only --window-style native
+  --styling tailwindcss --ui none --app-menu edit
   --auth none --database none --orm none --db-setup none
-  --package-manager bun --addons none --examples rpc --install --no-git
+  --settings none --package-manager bun --testing bun --addons none --examples rpc --install --no-git
 
 Options:
   --template minimal|standard|full
-  --frontend react|next|none
+  --frontend react
   --runtime bun
-  --api electrobun-rpc|trpc|none
+  --build-env dev|canary|stable
+  --build-targets current|all
+  --api electrobun-rpc|none
+  --navigation local-only|none
+  --window-style native|hidden-inset
   --styling tailwindcss|css
   --ui none|shadcn
-  --auth none|better-auth
+  --app-menu edit|none
+  --auth none|app-lock
   --database none|sqlite
   --orm none|drizzle
-  --db-setup none
-  --package-manager bun
+  --db-setup none|seed
+  --settings none|json|database
+  --package-manager bun|npm|pnpm|yarn
+  --testing bun|none
   --addons none|turborepo
   --examples rpc|none
   --install / --no-install
@@ -284,6 +291,10 @@ export const parseArgs = (args: Array<string>): CliOptions => {
     projectName = arg;
   }
 
+  if (stack.api === "none" && !stackFlags.has("examples")) {
+    stack.examples = "none";
+  }
+
   return {
     appIdentifier,
     cwd,
@@ -385,7 +396,7 @@ export const runCli = async (args: Array<string>): Promise<void> => {
       [
         `Project: ${projectName}`,
         `Template: ${template}`,
-        "Package manager: bun",
+        `Package manager: ${stack.packageManager}`,
         "Stack:",
         ...formatStackOptions(stack).map((item) => `  ${item}`),
         `Install: ${options.install ? "yes" : "no"}`,
@@ -405,8 +416,8 @@ export const runCli = async (args: Array<string>): Promise<void> => {
         "stack:",
         ...formatStackOptions(stack).map((item) => `  ${item}`),
         unsupported.length > 0
-          ? `planned: ${unsupported.map((item) => item.flag).join(", ")}`
-          : "planned: none",
+          ? `invalid: ${unsupported.map((item) => item.flag).join(", ")}`
+          : "invalid: none",
       ]);
       outro("No files were written.");
       return;
@@ -417,6 +428,8 @@ export const runCli = async (args: Array<string>): Promise<void> => {
     await runStep("Scaffolding files", () =>
       scaffoldProject({
         appIdentifier,
+        git: options.git,
+        install: options.install,
         packageName,
         projectName,
         stack,
@@ -434,10 +447,15 @@ export const runCli = async (args: Array<string>): Promise<void> => {
     }
 
     let installed = false;
+    const installCommand = getInstallCommand(stack.packageManager);
+    const devCommand = getRunCommand(stack.packageManager, "dev");
+    const typecheckCommand = getRunCommand(stack.packageManager, "typecheck");
+
     if (options.install) {
       try {
-        await runStep("Installing dependencies with Bun", () =>
-          packageManager.install(targetDirectory),
+        await runStep(
+          `Installing dependencies with ${stack.packageManager}`,
+          () => packageManager.install(targetDirectory, stack.packageManager),
         );
         installed = true;
       } catch (error: unknown) {
@@ -445,7 +463,7 @@ export const runCli = async (args: Array<string>): Promise<void> => {
           error instanceof Error ? error.message : "Unknown error";
         logger.warn(`Dependency install failed: ${message}`);
         logger.info(
-          "The project was created. Run bun install inside it when ready.",
+          `The project was created. Run ${installCommand} inside it when ready.`,
         );
       }
     }
@@ -453,8 +471,8 @@ export const runCli = async (args: Array<string>): Promise<void> => {
     logger.box([
       "Next steps:",
       `cd ${projectName}`,
-      installed ? "bun run dev" : "bun install",
-      installed ? "bun run typecheck" : "bun run dev",
+      installed ? devCommand : installCommand,
+      installed ? typecheckCommand : devCommand,
     ]);
     outro("Ready.");
   } catch (error: unknown) {

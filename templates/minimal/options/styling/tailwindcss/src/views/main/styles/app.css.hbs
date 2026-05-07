@@ -36,6 +36,34 @@ body {
   color: var(--text);
 }
 
+{{#if hasHiddenInsetTitlebar}}
+.window-drag-bar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 18px 0 84px;
+  color: rgba(244, 239, 228, 0.72);
+  background: rgba(7, 9, 13, 0.68);
+  border-bottom: 1px solid rgba(244, 239, 228, 0.09);
+  backdrop-filter: blur(18px);
+  user-select: none;
+}
+
+.window-drag-bar span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+{{/if}}
+
 button,
 input,
 textarea,
@@ -49,7 +77,12 @@ select {
   display: grid;
   min-height: 100vh;
   place-items: center;
+{{#if hasHiddenInsetTitlebar}}
+  padding: calc(36px + clamp(18px, 5vw, 56px)) clamp(18px, 5vw, 56px)
+    clamp(18px, 5vw, 56px);
+{{else}}
   padding: clamp(18px, 5vw, 56px);
+{{/if}}
   background:
     linear-gradient(125deg, rgba(56, 213, 198, 0.14), transparent 28%),
     linear-gradient(235deg, rgba(240, 127, 79, 0.18), transparent 34%),
@@ -207,6 +240,34 @@ h1 {
   color: #d5d2c8;
   font-size: clamp(1.05rem, 2vw, 1.35rem);
   line-height: 1.65;
+}
+
+.auth-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.auth-form input {
+  min-width: min(320px, 100%);
+  flex: 1;
+  height: 44px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 0 14px;
+  color: var(--text);
+  background: rgba(7, 9, 13, 0.62);
+}
+
+.auth-form button {
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 18px;
+  color: #07100f;
+  background: var(--cyan);
+  font-weight: 800;
 }
 
 .grid {

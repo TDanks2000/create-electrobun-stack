@@ -14,11 +14,15 @@ What the CLI creates:
 - An Electrobun desktop app.
 - Bun main process entrypoint.
 - React renderer in an Electrobun WebView.
+- Electrobun Edit menu by default.
+- Local-only renderer navigation guard by default.
 - TanStack Router.
 - Tailwind CSS by default, or plain CSS when requested.
 - Strict TypeScript.
 - Biome.
+- Bun test by default.
 - Typed native Electrobun RPC bridge.
+- ces.json in the generated project root with Better-T-Stack-style stack metadata, a reproducible command, and feature flags.
 
 Default behavior:
 - If the user provides only a project name, scaffold the default stack.
@@ -27,22 +31,44 @@ Default behavior:
 - The current implemented template is minimal.
 - SQLite is implemented for the minimal template.
 - Drizzle is implemented when paired with --database sqlite.
+- --api none is implemented and omits BrowserWindow RPC wiring.
+- --auth app-lock is implemented as a local app-name lock screen.
+- --db-setup seed is implemented when paired with --database sqlite.
+- --addons turborepo is implemented.
+- --package-manager supports bun, npm, pnpm, and yarn for dependency installation.
+- The default --app-menu edit adds an Electrobun ApplicationMenu with standard Edit roles.
+- --app-menu none omits the generated menu file and setup call.
+- The default --navigation local-only blocks non-views:// navigation from the renderer.
+- --navigation none omits the will-navigate guard.
+- --window-style hidden-inset adds Electrobun hiddenInset titlebar config and a draggable header.
+- --build-env controls electrobun build --env.
+- --build-targets controls electrobun build --targets.
+- The default --testing bun renders a Bun test script and generated manifest smoke test.
+- --testing none omits the test script and test files.
 - The default --examples rpc renders a starter RPC greeting/logging demo.
 - --examples none keeps the RPC bridge but omits the demo calls and generated README section.
+- Every generated project includes ces.json for future create-electrobun-stack commands.
+- ces.json has top-level fields like version, createdAt, reproducibleCommand, database, orm, frontend, addons, examples, api, and testing.
 
 Default stack flags:
 
 --template minimal
 --frontend react
 --runtime bun
+--build-env dev
+--build-targets current
 --api electrobun-rpc
+--navigation local-only
+--window-style native
 --styling tailwindcss
 --ui none
+--app-menu edit
 --auth none
 --database none
 --orm none
 --db-setup none
 --package-manager bun
+--testing bun
 --addons none
 --examples rpc
 --install
@@ -92,16 +118,22 @@ bunx create-electrobun-stack --version
 
 Supported options:
 - --template minimal|standard|full
-- --frontend react|next|none
+- --frontend react
 - --runtime bun
-- --api electrobun-rpc|trpc|none
+- --build-env dev|canary|stable
+- --build-targets current|all
+- --api electrobun-rpc|none
+- --navigation local-only|none
+- --window-style native|hidden-inset
 - --styling tailwindcss|css
 - --ui none|shadcn
-- --auth none|better-auth
+- --app-menu edit|none
+- --auth none|app-lock
 - --database none|sqlite
 - --orm none|drizzle
-- --db-setup none
-- --package-manager bun
+- --db-setup none|seed
+- --package-manager bun|npm|pnpm|yarn
+- --testing bun|none
 - --addons none|turborepo
 - --examples rpc|none
 - --install
@@ -118,24 +150,15 @@ Supported options:
 
 Important current limitations:
 - Only the minimal template is implemented.
-- standard and full are planned but not implemented.
-- --package-manager only supports bun.
-- Planned flags parse but fail before scaffolding unless --dry-run is used.
-- Do not tell users that Next.js, tRPC, Better Auth, or Turborepo scaffolding is implemented yet.
-
-Planned but not currently scaffolded:
-- --template standard
-- --template full
-- --frontend next
-- --api trpc
-- --auth better-auth
-- --addons turborepo
+- standard and full are implemented profiles that currently share the minimal template source.
+- Invalid combinations fail before scaffolding unless --dry-run is used.
 
 Generated app commands after scaffolding:
 
 cd my-app
 bun run dev
 bun run build
+bun test
 bun run typecheck
 bun run lint
 bun run format

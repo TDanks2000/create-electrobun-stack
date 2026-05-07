@@ -2,17 +2,24 @@ import { formatList } from "./utils/format";
 
 export type StackOptions = {
   addons: "none" | "turborepo";
-  api: "electrobun-rpc" | "trpc" | "none";
-  auth: "none" | "better-auth";
+  appMenu: "edit" | "none";
+  api: "electrobun-rpc" | "none";
+  auth: "none" | "app-lock";
+  buildEnv: "dev" | "canary" | "stable";
+  buildTargets: "current" | "all";
   database: "none" | "sqlite";
-  dbSetup: "none";
+  dbSetup: "none" | "seed";
   examples: "rpc" | "none";
-  frontend: "react" | "next" | "none";
+  frontend: "react";
   orm: "none" | "drizzle";
-  packageManager: "bun";
+  packageManager: "bun" | "npm" | "pnpm" | "yarn";
   runtime: "bun";
+  settings: "none" | "json" | "database";
   styling: "css" | "tailwindcss";
+  testing: "bun" | "none";
   ui: "none" | "shadcn";
+  navigation: "local-only" | "none";
+  windowStyle: "native" | "hidden-inset";
 };
 
 export type UnsupportedStackOption = {
@@ -22,8 +29,11 @@ export type UnsupportedStackOption = {
 
 export const defaultStackOptions: StackOptions = {
   addons: "none",
+  appMenu: "edit",
   api: "electrobun-rpc",
   auth: "none",
+  buildEnv: "dev",
+  buildTargets: "current",
   database: "none",
   dbSetup: "none",
   examples: "rpc",
@@ -31,23 +41,34 @@ export const defaultStackOptions: StackOptions = {
   orm: "none",
   packageManager: "bun",
   runtime: "bun",
+  settings: "none",
   styling: "tailwindcss",
+  testing: "bun",
   ui: "none",
+  navigation: "local-only",
+  windowStyle: "native",
 };
 
 export const stackOptionChoices = {
   addons: ["none", "turborepo"],
-  api: ["electrobun-rpc", "trpc", "none"],
-  auth: ["none", "better-auth"],
+  appMenu: ["edit", "none"],
+  api: ["electrobun-rpc", "none"],
+  auth: ["none", "app-lock"],
+  buildEnv: ["dev", "canary", "stable"],
+  buildTargets: ["current", "all"],
   database: ["none", "sqlite"],
-  dbSetup: ["none"],
+  dbSetup: ["none", "seed"],
   examples: ["rpc", "none"],
-  frontend: ["react", "next", "none"],
+  frontend: ["react"],
   orm: ["none", "drizzle"],
-  packageManager: ["bun"],
+  packageManager: ["bun", "npm", "pnpm", "yarn"],
   runtime: ["bun"],
+  settings: ["none", "json", "database"],
   styling: ["tailwindcss", "css"],
+  testing: ["bun", "none"],
   ui: ["none", "shadcn"],
+  navigation: ["local-only", "none"],
+  windowStyle: ["native", "hidden-inset"],
 } as const satisfies {
   [Key in keyof StackOptions]: Readonly<Array<StackOptions[Key]>>;
 };
@@ -56,8 +77,11 @@ export type StackOptionName = keyof StackOptions;
 
 export const stackFlagNames = {
   addons: "addons",
+  "app-menu": "appMenu",
   api: "api",
   auth: "auth",
+  "build-env": "buildEnv",
+  "build-targets": "buildTargets",
   database: "database",
   "db-setup": "dbSetup",
   examples: "examples",
@@ -65,8 +89,12 @@ export const stackFlagNames = {
   orm: "orm",
   "package-manager": "packageManager",
   runtime: "runtime",
+  settings: "settings",
   styling: "styling",
+  testing: "testing",
   ui: "ui",
+  navigation: "navigation",
+  "window-style": "windowStyle",
 } as const satisfies Record<string, StackOptionName>;
 
 export type StackFlagName = keyof typeof stackFlagNames;
@@ -105,11 +133,20 @@ export const setStackOption = (
     case "addons":
       options.addons = parseStackOptionValue(optionName, value);
       return;
+    case "appMenu":
+      options.appMenu = parseStackOptionValue(optionName, value);
+      return;
     case "api":
       options.api = parseStackOptionValue(optionName, value);
       return;
     case "auth":
       options.auth = parseStackOptionValue(optionName, value);
+      return;
+    case "buildEnv":
+      options.buildEnv = parseStackOptionValue(optionName, value);
+      return;
+    case "buildTargets":
+      options.buildTargets = parseStackOptionValue(optionName, value);
       return;
     case "database":
       options.database = parseStackOptionValue(optionName, value);
@@ -132,11 +169,23 @@ export const setStackOption = (
     case "runtime":
       options.runtime = parseStackOptionValue(optionName, value);
       return;
+    case "settings":
+      options.settings = parseStackOptionValue(optionName, value);
+      return;
     case "styling":
       options.styling = parseStackOptionValue(optionName, value);
       return;
+    case "testing":
+      options.testing = parseStackOptionValue(optionName, value);
+      return;
     case "ui":
       options.ui = parseStackOptionValue(optionName, value);
+      return;
+    case "navigation":
+      options.navigation = parseStackOptionValue(optionName, value);
+      return;
+    case "windowStyle":
+      options.windowStyle = parseStackOptionValue(optionName, value);
       return;
   }
 };
@@ -146,27 +195,6 @@ export const getUnsupportedStackOptions = (
 ): Array<UnsupportedStackOption> => {
   const unsupported: Array<UnsupportedStackOption> = [];
 
-  if (options.frontend !== "react") {
-    unsupported.push({
-      flag: `--frontend ${options.frontend}`,
-      note: "Only the React WebView renderer is implemented.",
-    });
-  }
-
-  if (options.api !== "electrobun-rpc") {
-    unsupported.push({
-      flag: `--api ${options.api}`,
-      note: "The current template uses native typed Electrobun RPC.",
-    });
-  }
-
-  if (options.auth !== "none") {
-    unsupported.push({
-      flag: `--auth ${options.auth}`,
-      note: "Auth is planned for a later full-stack template.",
-    });
-  }
-
   if (options.orm === "drizzle" && options.database !== "sqlite") {
     unsupported.push({
       flag: `--database ${options.database} --orm ${options.orm}`,
@@ -174,10 +202,10 @@ export const getUnsupportedStackOptions = (
     });
   }
 
-  if (options.addons !== "none") {
+  if (options.dbSetup === "seed" && options.database !== "sqlite") {
     unsupported.push({
-      flag: `--addons ${options.addons}`,
-      note: "Addons are planned after the base templates stabilize.",
+      flag: `--database ${options.database} --db-setup ${options.dbSetup}`,
+      note: "Seed data requires SQLite in the current template.",
     });
   }
 
@@ -185,6 +213,20 @@ export const getUnsupportedStackOptions = (
     unsupported.push({
       flag: `--examples rpc --api ${options.api}`,
       note: "The RPC example requires the native Electrobun RPC API.",
+    });
+  }
+
+  if (options.settings !== "none" && options.api !== "electrobun-rpc") {
+    unsupported.push({
+      flag: `--settings ${options.settings} --api ${options.api}`,
+      note: "Settings storage requires the native Electrobun RPC API.",
+    });
+  }
+
+  if (options.settings === "database" && options.database !== "sqlite") {
+    unsupported.push({
+      flag: `--database ${options.database} --settings ${options.settings}`,
+      note: "Database-backed settings require SQLite in the current template.",
     });
   }
 
@@ -206,7 +248,7 @@ export const validateStackOptions = (options: StackOptions): void => {
       .map((item) => `${item.flag}: ${item.note}`)
       .join("\n");
     throw new Error(
-      `These options are planned but not implemented in the current minimal template:\n${details}`,
+      `These stack options cannot be combined in the current template:\n${details}`,
     );
   }
 };
@@ -215,14 +257,21 @@ export const formatStackOptions = (options: StackOptions): Array<string> => {
   return [
     `frontend=${options.frontend}`,
     `runtime=${options.runtime}`,
+    `buildEnv=${options.buildEnv}`,
+    `buildTargets=${options.buildTargets}`,
     `api=${options.api}`,
+    `navigation=${options.navigation}`,
+    `windowStyle=${options.windowStyle}`,
     `styling=${options.styling}`,
     `ui=${options.ui}`,
+    `appMenu=${options.appMenu}`,
     `auth=${options.auth}`,
     `database=${options.database}`,
     `orm=${options.orm}`,
     `dbSetup=${options.dbSetup}`,
+    `settings=${options.settings}`,
     `packageManager=${options.packageManager}`,
+    `testing=${options.testing}`,
     `addons=${options.addons}`,
     `examples=${options.examples}`,
   ];

@@ -13,9 +13,21 @@ const handleCancel = <Value>(answer: Value | symbol): Value => {
 };
 
 const templateChoices = [
-  { value: "minimal", label: "Minimal", hint: "implemented" },
-  { value: "standard", label: "Standard", hint: "planned", disabled: true },
-  { value: "full", label: "Full", hint: "planned", disabled: true },
+  {
+    value: "minimal",
+    label: "Minimal",
+    hint: "small Electrobun + React starter",
+  },
+  {
+    value: "standard",
+    label: "Standard",
+    hint: "standard profile using the stable scaffold",
+  },
+  {
+    value: "full",
+    label: "Full",
+    hint: "full profile using the stable scaffold",
+  },
 ] satisfies Array<Option<TemplateName>>;
 
 export const promptProjectName = async (): Promise<string> => {
@@ -81,8 +93,7 @@ const promptAddons = async (
       {
         value: "turborepo",
         label: "Turborepo",
-        hint: "planned",
-        disabled: true,
+        hint: "adds turbo.json and Turbo scripts",
       },
     ],
     required: false,
@@ -113,7 +124,7 @@ const promptExamples = async (
         label: "RPC example",
         hint:
           options.api === "electrobun-rpc"
-            ? "recommended"
+            ? "adds greeting and logging demo calls"
             : "requires Electrobun RPC",
         disabled: options.api !== "electrobun-rpc",
       },
@@ -131,13 +142,10 @@ export const promptStackOptions = async (
   const options: StackOptions = { ...initialOptions };
 
   await promptStackSelect(options, lockedOptions, "frontend", "Frontend", [
-    { value: "react", label: "React WebView", hint: "implemented" },
-    { value: "next", label: "Next.js", hint: "planned", disabled: true },
     {
-      value: "none",
-      label: "None",
-      hint: "desktop app needs a renderer",
-      disabled: true,
+      value: "react",
+      label: "React WebView",
+      hint: "generates the renderer view with React",
     },
   ]);
 
@@ -145,62 +153,268 @@ export const promptStackOptions = async (
     {
       value: "electrobun-rpc",
       label: "Electrobun RPC",
-      hint: "implemented",
+      hint: "adds typed Bun-to-WebView calls",
     },
-    { value: "trpc", label: "tRPC", hint: "planned", disabled: true },
     {
       value: "none",
       label: "None",
-      hint: "minimal template expects typed RPC",
-      disabled: true,
+      hint: "omits the native RPC bridge",
     },
   ]);
 
+  await promptStackSelect(
+    options,
+    lockedOptions,
+    "navigation",
+    "Navigation guard",
+    [
+      {
+        value: "local-only",
+        label: "Local views only",
+        hint: "blocks navigation outside bundled views",
+      },
+      {
+        value: "none",
+        label: "None",
+        hint: "does not install a navigation guard",
+      },
+    ],
+  );
+
+  await promptStackSelect(
+    options,
+    lockedOptions,
+    "windowStyle",
+    "Window style",
+    [
+      {
+        value: "native",
+        label: "Native chrome",
+        hint: "uses the default OS titlebar",
+      },
+      {
+        value: "hidden-inset",
+        label: "Hidden inset titlebar",
+        hint: "adds hiddenInset titlebar and draggable header",
+      },
+    ],
+  );
+
+  await promptStackSelect(
+    options,
+    lockedOptions,
+    "appMenu",
+    "Application menu",
+    [
+      {
+        value: "edit",
+        label: "Edit menu",
+        hint: "adds native copy, paste, and undo roles",
+      },
+      {
+        value: "none",
+        label: "None",
+        hint: "omits the application menu scaffold",
+      },
+    ],
+  );
+
   await promptStackSelect(options, lockedOptions, "styling", "Styling", [
-    { value: "tailwindcss", label: "Tailwind CSS", hint: "implemented" },
-    { value: "css", label: "Plain CSS", hint: "no Tailwind dependency" },
+    {
+      value: "tailwindcss",
+      label: "Tailwind CSS",
+      hint: "adds Tailwind CSS v4 styling setup",
+    },
+    {
+      value: "css",
+      label: "Plain CSS",
+      hint: "uses plain styles without Tailwind",
+    },
   ]);
 
   await promptStackSelect(options, lockedOptions, "ui", "UI components", [
-    { value: "none", label: "None", hint: "minimal" },
+    {
+      value: "none",
+      label: "None",
+      hint: "does not add a component library config",
+    },
     {
       value: "shadcn",
       label: "shadcn/ui config",
       hint:
         options.styling === "tailwindcss"
-          ? "components.json"
+          ? "adds components.json for shadcn/ui"
           : "requires Tailwind CSS",
       disabled: options.styling !== "tailwindcss",
     },
   ]);
 
   await promptStackSelect(options, lockedOptions, "database", "Database", [
-    { value: "none", label: "None", hint: "implemented" },
-    { value: "sqlite", label: "SQLite", hint: "Bun native SQLite" },
+    {
+      value: "none",
+      label: "None",
+      hint: "does not add database files",
+    },
+    {
+      value: "sqlite",
+      label: "SQLite",
+      hint: "adds a Bun SQLite client",
+    },
   ]);
 
   await promptStackSelect(options, lockedOptions, "orm", "ORM", [
-    { value: "none", label: "None", hint: "implemented" },
+    {
+      value: "none",
+      label: "None",
+      hint: "uses the raw database client",
+    },
     {
       value: "drizzle",
       label: "Drizzle",
       hint:
         options.database === "sqlite"
-          ? "implemented"
+          ? "adds schema and Drizzle client files"
           : "requires SQLite database",
       disabled: options.database !== "sqlite",
     },
   ]);
 
-  await promptStackSelect(options, lockedOptions, "auth", "Auth", [
-    { value: "none", label: "None", hint: "implemented" },
+  await promptStackSelect(options, lockedOptions, "settings", "Settings", [
     {
-      value: "better-auth",
-      label: "Better Auth",
-      hint: options.database === "sqlite" ? "planned" : "requires a database",
-      disabled: true,
+      value: "none",
+      label: "None",
+      hint: "does not add settings persistence",
+    },
+    {
+      value: "json",
+      label: "JSON",
+      hint:
+        options.api === "electrobun-rpc"
+          ? "adds a VS Code-style settings.json store"
+          : "requires Electrobun RPC",
+      disabled: options.api !== "electrobun-rpc",
+    },
+    {
+      value: "database",
+      label: "Database",
+      hint:
+        options.api !== "electrobun-rpc"
+          ? "requires Electrobun RPC"
+          : options.database === "sqlite"
+            ? "stores settings in SQLite"
+            : "requires SQLite database",
+      disabled: options.api !== "electrobun-rpc" || options.database !== "sqlite",
     },
   ]);
+
+  await promptStackSelect(options, lockedOptions, "auth", "Auth", [
+    {
+      value: "none",
+      label: "None",
+      hint: "does not add an app lock screen",
+    },
+    {
+      value: "app-lock",
+      label: "App lock",
+      hint: "adds a local unlock screen",
+    },
+  ]);
+
+  await promptStackSelect(options, lockedOptions, "dbSetup", "Database setup", [
+    {
+      value: "none",
+      label: "None",
+      hint: "leaves SQLite without seed data",
+    },
+    {
+      value: "seed",
+      label: "Seed data",
+      hint:
+        options.database === "sqlite"
+          ? "adds a starter metadata row"
+          : "requires SQLite",
+      disabled: options.database !== "sqlite",
+    },
+  ]);
+
+  await promptStackSelect(options, lockedOptions, "testing", "Testing", [
+    {
+      value: "bun",
+      label: "Bun test",
+      hint: "adds test script and manifest smoke test",
+    },
+    {
+      value: "none",
+      label: "None",
+      hint: "omits generated test files",
+    },
+  ]);
+
+  await promptStackSelect(
+    options,
+    lockedOptions,
+    "packageManager",
+    "Package manager",
+    [
+      {
+        value: "bun",
+        label: "Bun",
+        hint: "uses bun install and bun run",
+      },
+      {
+        value: "pnpm",
+        label: "pnpm",
+        hint: "uses pnpm install and pnpm scripts",
+      },
+      {
+        value: "npm",
+        label: "npm",
+        hint: "uses npm install and npm run",
+      },
+      {
+        value: "yarn",
+        label: "Yarn",
+        hint: "uses yarn install and yarn scripts",
+      },
+    ],
+  );
+
+  await promptStackSelect(options, lockedOptions, "buildEnv", "Build env", [
+    {
+      value: "dev",
+      label: "Development",
+      hint: "builds with electrobun --env dev",
+    },
+    {
+      value: "canary",
+      label: "Canary",
+      hint: "builds with electrobun --env canary",
+    },
+    {
+      value: "stable",
+      label: "Stable",
+      hint: "builds with electrobun --env stable",
+    },
+  ]);
+
+  await promptStackSelect(
+    options,
+    lockedOptions,
+    "buildTargets",
+    "Build targets",
+    [
+      {
+        value: "current",
+        label: "Current platform",
+        hint: "builds only for this OS",
+      },
+      {
+        value: "all",
+        label: "All platforms",
+        hint: "builds every configured target",
+      },
+    ],
+  );
 
   await promptAddons(options, lockedOptions);
   await promptExamples(options, lockedOptions);
