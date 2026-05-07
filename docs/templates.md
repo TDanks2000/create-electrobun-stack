@@ -18,6 +18,7 @@ Includes:
 - Native or hidden-inset window chrome through `--window-style`
 - Optional Bun test scaffold through `--testing bun`
 - Optional app lock through `--auth app-lock`
+- Optional JSON or database settings persistence through `--settings`
 - Optional Turborepo config through `--addons turborepo`
 - Typed Electrobun RPC bridge
 - Optional starter RPC example through `--examples rpc`
@@ -42,6 +43,11 @@ templates/minimal/
     orm/
       drizzle/
         **/*.hbs
+    settings/
+      json/
+        **/*.hbs
+      database/
+        **/*.hbs
     testing/
       bun/
         **/*.hbs
@@ -54,6 +60,8 @@ The default `--app-menu edit` adds an Electrobun `ApplicationMenu` with standard
 The default `--testing bun` adds `bun test`, includes `tests` in `tsconfig.json`, and renders a generated manifest smoke test. Passing `--testing none` omits the test script and test files.
 
 Passing `--api none` omits BrowserWindow RPC wiring. Passing `--auth app-lock` renders a local app-name lock screen. Passing `--db-setup seed` with SQLite inserts starter metadata when the database is empty. Passing `--addons turborepo` adds `turbo.json`, a `check` script, and the Turbo dev dependency.
+
+Passing `--settings json` adds a Bun-side settings store backed by `data/settings.json`, with VS Code-style dotted keys such as `app.theme`. Passing `--settings database` stores the same key/value settings in SQLite and requires `--database sqlite`. Both settings modes expose `getSettingsStatus` and `updateSetting` through the typed Electrobun RPC bridge.
 
 The default `--examples rpc` renders a greeting/logging RPC demo in the route, handlers, shared RPC schema, and generated README. Passing `--examples none` keeps the typed RPC bridge and environment request but omits that demo surface.
 
@@ -71,6 +79,8 @@ src/
     rpc/
       handlers.ts
       router.ts
+    settings/
+      store.ts
   views/
     main/
       index.html

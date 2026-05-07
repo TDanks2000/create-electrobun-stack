@@ -45,6 +45,12 @@ Generated with `create-electrobun-stack`.
 {{#if hasDrizzle}}
 - Drizzle ORM
 {{/if}}
+{{#if hasJsonSettings}}
+- VS Code-style JSON settings store
+{{/if}}
+{{#if hasDatabaseSettings}}
+- Database-backed settings store
+{{/if}}
 
 `ces.json` records the generated stack, reproducible command, and feature flags for future `create-electrobun-stack` commands.
 {{#if hasRpcExample}}

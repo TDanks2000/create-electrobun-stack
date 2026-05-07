@@ -30,7 +30,7 @@ bun run src/index.ts <project-name> [options]
 
 ## Generated Manifest
 
-The CLI writes `ces.json` in the generated project root. The manifest follows a Better-T-Stack-inspired shape with `$schema`, `version`, `createdAt`, `reproducibleCommand`, project identifiers, flat stack fields such as `database`, `orm`, `frontend`, `addons`, `examples`, and `features` booleans for integrations such as `shadcn`, `sqlite`, `drizzle`, `bunTest`, `appLock`, and `turborepo`.
+The CLI writes `ces.json` in the generated project root. The manifest follows a Better-T-Stack-inspired shape with `$schema`, `version`, `createdAt`, `reproducibleCommand`, project identifiers, flat stack fields such as `database`, `orm`, `settings`, `frontend`, `addons`, `examples`, and `features` booleans for integrations such as `shadcn`, `sqlite`, `drizzle`, `bunTest`, `appLock`, `settingsStore`, and `turborepo`.
 
 ## Stack Options
 
@@ -53,6 +53,7 @@ These options intentionally mirror the shape of stack scaffolders like `better-t
 | `--database` | `none`, `sqlite` | implemented |
 | `--orm` | `none`, `drizzle` | `drizzle` implemented with SQLite |
 | `--db-setup` | `none`, `seed` | `seed` adds starter SQLite metadata |
+| `--settings` | `none`, `json`, `database` | `json` adds `data/settings.json`; `database` stores settings in SQLite |
 | `--package-manager` | `bun`, `npm`, `pnpm`, `yarn` | controls dependency install command |
 | `--testing` | `bun`, `none` | `bun` adds a Bun test script and generated manifest smoke test |
 | `--addons` | `none`, `turborepo` | `turborepo` adds `turbo.json` and Turbo scripts |
@@ -84,6 +85,7 @@ bunx create-electrobun-stack my-app \
   --database none \
   --orm none \
   --db-setup none \
+  --settings none \
   --package-manager bun \
   --testing bun \
   --addons none \
@@ -108,6 +110,20 @@ bunx create-electrobun-stack my-app \
 ```
 
 Invalid combinations, such as `--db-setup seed` without SQLite, fail before files are written.
+
+Create with a VS Code-style JSON settings file:
+
+```bash
+bunx create-electrobun-stack my-app --settings json
+```
+
+Create with database-backed settings:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --database sqlite \
+  --settings database
+```
 
 Create with SQLite and Drizzle:
 

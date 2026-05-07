@@ -106,6 +106,8 @@ describe("parseArgs", () => {
       "turborepo",
       "--db-setup",
       "seed",
+      "--settings",
+      "json",
     ]);
 
     expect(options.projectName).toBe("sample-app");
@@ -125,6 +127,7 @@ describe("parseArgs", () => {
     expect(options.stack.auth).toBe("app-lock");
     expect(options.stack.addons).toBe("turborepo");
     expect(options.stack.dbSetup).toBe("seed");
+    expect(options.stack.settings).toBe("json");
   });
 
   test("omits default RPC example when API is disabled", () => {
@@ -166,6 +169,23 @@ describe("parseArgs", () => {
         ui: "shadcn",
       }),
     ).toThrow("shadcn/ui requires Tailwind CSS");
+
+    expect(() =>
+      validateStackOptions({
+        ...defaultStackOptions,
+        api: "none",
+        examples: "none",
+        settings: "json",
+      }),
+    ).toThrow("Settings storage requires");
+
+    expect(() =>
+      validateStackOptions({
+        ...defaultStackOptions,
+        database: "none",
+        settings: "database",
+      }),
+    ).toThrow("Database-backed settings require SQLite");
   });
 });
 
@@ -240,6 +260,7 @@ describe("generated minimal template", () => {
     expect(manifest.reproducibleCommand).toContain("--testing bun");
     expect(manifest.reproducibleCommand).toContain("--navigation local-only");
     expect(manifest.reproducibleCommand).toContain("--window-style native");
+    expect(manifest.reproducibleCommand).toContain("--settings none");
     expect(manifest.reproducibleCommand).toContain("--no-install");
     expect(manifest.projectName).toBe("sample-app");
     expect(manifest.packageName).toBe("sample-app");
@@ -260,15 +281,19 @@ describe("generated minimal template", () => {
     expect(manifest.windowStyle).toBe("native");
     expect(manifest.buildEnv).toBe("dev");
     expect(manifest.buildTargets).toBe("current");
+    expect(manifest.settings).toBe("none");
     expect(manifest.features).toMatchObject({
+      databaseSettings: false,
       editMenu: true,
       electrobun: true,
       electrobunRpc: true,
       hiddenInsetTitlebar: false,
+      jsonSettings: false,
       localNavigationGuard: true,
       react: true,
       rpcExample: true,
       bunTest: true,
+      settingsStore: false,
       shadcn: false,
       sqlite: false,
       tailwindcss: true,

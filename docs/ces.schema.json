@@ -81,6 +81,9 @@
     "runtime": {
       "enum": ["bun"]
     },
+    "settings": {
+      "enum": ["none", "json", "database"]
+    },
     "styling": {
       "enum": ["tailwindcss", "css"]
     },
@@ -115,6 +118,7 @@
     "database",
     "orm",
     "runtime",
+    "settings",
     "buildEnv",
     "buildTargets",
     "frontend",

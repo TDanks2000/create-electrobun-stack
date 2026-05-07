@@ -34,6 +34,8 @@ Default behavior:
 - --api none is implemented and omits BrowserWindow RPC wiring.
 - --auth app-lock is implemented as a local app-name lock screen.
 - --db-setup seed is implemented when paired with --database sqlite.
+- --settings json is implemented and adds a VS Code-style data/settings.json store.
+- --settings database is implemented when paired with --database sqlite and stores settings in SQLite.
 - --addons turborepo is implemented.
 - --package-manager supports bun, npm, pnpm, and yarn for dependency installation.
 - The default --app-menu edit adds an Electrobun ApplicationMenu with standard Edit roles.
@@ -49,6 +51,7 @@ Default behavior:
 - --examples none keeps the RPC bridge but omits the demo calls and generated README section.
 - Every generated project includes ces.json for future create-electrobun-stack commands.
 - ces.json has top-level fields like version, createdAt, reproducibleCommand, database, orm, frontend, addons, examples, api, and testing.
+- Settings modes require the native Electrobun RPC bridge; database settings also require SQLite.
 
 Default stack flags:
 
@@ -67,6 +70,7 @@ Default stack flags:
 --database none
 --orm none
 --db-setup none
+--settings none
 --package-manager bun
 --testing bun
 --addons none
@@ -132,6 +136,7 @@ Supported options:
 - --database none|sqlite
 - --orm none|drizzle
 - --db-setup none|seed
+- --settings none|json|database
 - --package-manager bun|npm|pnpm|yarn
 - --testing bun|none
 - --addons none|turborepo

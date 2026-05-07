@@ -6,3 +6,11 @@ export const appMetadata = sqliteTable("app_metadata", {
   value: text("value").notNull(),
   createdAt: text("created_at").notNull(),
 });
+{{#if hasDatabaseSettings}}
+
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+{{/if}}

@@ -8,11 +8,16 @@ import { useState } from "react";
 {{/if}}
 import { APP_NAME } from "../../../shared/constants";
 {{#if hasElectrobunRpc}}
+import type {
+  AppEnvironment,
 {{#if hasDatabase}}
-import type { AppEnvironment, DatabaseStatus } from "../../../shared/types";
-{{else}}
-import type { AppEnvironment } from "../../../shared/types";
+  DatabaseStatus,
 {{/if}}
+{{#if hasSettings}}
+  SettingValue,
+  SettingsStatus,
+{{/if}}
+} from "../../../shared/types";
 import { rpc } from "../lib/rpc";
 {{/if}}
 import { rootRoute } from "./__root";
@@ -32,6 +37,10 @@ const Home = () => {
 {{#if hasDatabase}}
   const [database, setDatabase] = useState<DatabaseStatus | null>(null);
 {{/if}}
+{{#if hasSettings}}
+  const [settings, setSettings] = useState<SettingsStatus | null>(null);
+  const [isSavingSetting, setIsSavingSetting] = useState(false);
+{{/if}}
 {{/if}}
 {{#if hasElectrobunRpc}}
   const isReady = environment !== null;
@@ -44,29 +53,26 @@ const Home = () => {
     let mounted = true;
 
     const load = async () => {
+      const environmentRequest = rpc.request.getEnvironment(null);
+{{#if hasRpcExample}}
+      const greetingRequest = rpc.request.greet({ name: APP_NAME });
+{{/if}}
 {{#if hasDatabase}}
-{{#if hasRpcExample}}
-      const [environmentResult, greetingResult, databaseResult] =
-        await Promise.all([
-          rpc.request.getEnvironment(null),
-          rpc.request.greet({ name: APP_NAME }),
-          rpc.request.getDatabaseStatus(null),
-        ]);
-{{else}}
-      const [environmentResult, databaseResult] = await Promise.all([
-        rpc.request.getEnvironment(null),
-        rpc.request.getDatabaseStatus(null),
-      ]);
+      const databaseRequest = rpc.request.getDatabaseStatus(null);
 {{/if}}
-{{else}}
-{{#if hasRpcExample}}
-      const [environmentResult, greetingResult] = await Promise.all([
-        rpc.request.getEnvironment(null),
-        rpc.request.greet({ name: APP_NAME }),
-      ]);
-{{else}}
-      const environmentResult = await rpc.request.getEnvironment(null);
+{{#if hasSettings}}
+      const settingsRequest = rpc.request.getSettingsStatus(null);
 {{/if}}
+
+      const environmentResult = await environmentRequest;
+{{#if hasRpcExample}}
+      const greetingResult = await greetingRequest;
+{{/if}}
+{{#if hasDatabase}}
+      const databaseResult = await databaseRequest;
+{{/if}}
+{{#if hasSettings}}
+      const settingsResult = await settingsRequest;
 {{/if}}
 
       if (!mounted) {
@@ -80,6 +86,9 @@ const Home = () => {
 {{#if hasDatabase}}
       setDatabase(databaseResult);
 {{/if}}
+{{#if hasSettings}}
+      setSettings(settingsResult);
+{{/if}}
 {{#if hasRpcExample}}
       rpc.send.logToBun({ message: "Renderer loaded and called Bun RPC." });
 {{/if}}
@@ -91,6 +100,18 @@ const Home = () => {
       mounted = false;
     };
   }, []);
+{{#if hasSettings}}
+
+  const saveSetting = async (key: string, value: SettingValue) => {
+    setIsSavingSetting(true);
+
+    try {
+      setSettings(await rpc.request.updateSetting({ key, value }));
+    } finally {
+      setIsSavingSetting(false);
+    }
+  };
+{{/if}}
 {{/if}}
 {{#if hasAppLock}}
 
@@ -195,8 +216,38 @@ const Home = () => {
             </strong>
           </div>
           {{/if}}
+          {{#if hasSettings}}
+          <div>
+            <span>Settings</span>
+            <strong>
+              {settings
+                ? `${settings.storage} / ${Object.keys(settings.values).length} keys`
+                : "Loading"}
+            </strong>
+          </div>
+          {{/if}}
           {{/if}}
         </div>
+{{#if hasSettings}}
+        <div className="settings-controls">
+          <span>app.theme</span>
+          <div aria-label="Theme setting" className="segmented" role="group">
+            {(["system", "light", "dark"] as const).map((theme) => (
+              <button
+                className={
+                  settings?.values["app.theme"] === theme ? "is-active" : ""
+                }
+                disabled={isSavingSetting}
+                key={theme}
+                onClick={() => void saveSetting("app.theme", theme)}
+                type="button"
+              >
+                {theme}
+              </button>
+            ))}
+          </div>
+        </div>
+{{/if}}
         <dl className="facts">
           <div>
             <dt>Platform</dt>
@@ -219,6 +270,12 @@ const Home = () => {
           <div>
             <dt>Database file</dt>
             <dd>{database?.path ?? "Loading"}</dd>
+          </div>
+          {{/if}}
+          {{#if hasSettings}}
+          <div>
+            <dt>Settings store</dt>
+            <dd>{settings?.path ?? "Loading"}</dd>
           </div>
           {{/if}}
           {{/if}}

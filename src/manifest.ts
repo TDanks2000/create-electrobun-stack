@@ -13,12 +13,15 @@ export type CesFeatureFlags = {
   editMenu: boolean;
   electrobun: boolean;
   electrobunRpc: boolean;
+  databaseSettings: boolean;
   hiddenInsetTitlebar: boolean;
+  jsonSettings: boolean;
   localNavigationGuard: boolean;
   plainCss: boolean;
   react: boolean;
   rpcExample: boolean;
   shadcn: boolean;
+  settingsStore: boolean;
   sqlite: boolean;
   tailwindcss: boolean;
   tanstackRouter: boolean;
@@ -50,6 +53,7 @@ export type CesManifest = {
   projectName: string;
   reproducibleCommand: string;
   runtime: StackOptions["runtime"];
+  settings: StackOptions["settings"];
   styling: StackOptions["styling"];
   template: TemplateName;
   testing: StackOptions["testing"];
@@ -80,12 +84,15 @@ const createFeatureFlags = (stack: StackOptions): CesFeatureFlags => ({
   editMenu: stack.appMenu === "edit",
   electrobun: true,
   electrobunRpc: stack.api === "electrobun-rpc",
+  databaseSettings: stack.settings === "database",
   hiddenInsetTitlebar: stack.windowStyle === "hidden-inset",
+  jsonSettings: stack.settings === "json",
   localNavigationGuard: stack.navigation === "local-only",
   plainCss: stack.styling === "css",
   react: stack.frontend === "react",
   rpcExample: stack.examples === "rpc",
   shadcn: stack.ui === "shadcn",
+  settingsStore: stack.settings !== "none",
   sqlite: stack.database === "sqlite",
   tailwindcss: stack.styling === "tailwindcss",
   tanstackRouter: stack.frontend === "react",
@@ -117,6 +124,14 @@ const createAddonsList = (stack: StackOptions): Array<string> => {
 
   if (stack.navigation === "local-only") {
     addons.push("navigation-guard");
+  }
+
+  if (stack.settings === "json") {
+    addons.push("settings-json");
+  }
+
+  if (stack.settings === "database") {
+    addons.push("settings-database");
   }
 
   if (stack.addons === "turborepo") {
@@ -164,6 +179,8 @@ const createReproducibleCommand = (options: CesManifestOptions): string => {
     options.stack.orm,
     "--db-setup",
     options.stack.dbSetup,
+    "--settings",
+    options.stack.settings,
     "--package-manager",
     options.stack.packageManager,
     "--testing",
@@ -206,6 +223,7 @@ export const createCesManifest = (
   auth: options.stack.auth,
   packageManager: options.stack.packageManager,
   dbSetup: options.stack.dbSetup,
+  settings: options.stack.settings,
   api: options.stack.api,
   navigation: options.stack.navigation,
   windowStyle: options.stack.windowStyle,

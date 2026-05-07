@@ -270,9 +270,63 @@ h1 {
   font-weight: 800;
 }
 
+.settings-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(7, 9, 13, 0.36);
+}
+
+.settings-controls > span {
+  color: var(--muted);
+  font-family:
+    ui-monospace, "SFMono-Regular", "Cascadia Code", "Liberation Mono",
+    monospace;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.segmented {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(76px, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--line-strong);
+}
+
+.segmented button {
+  min-height: 36px;
+  border: 0;
+  padding: 0 12px;
+  color: var(--muted);
+  background: rgba(16, 20, 27, 0.92);
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.segmented button:hover:not(:disabled),
+.segmented button.is-active {
+  color: #07100f;
+  background: var(--cyan);
+}
+
+.segmented button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1px;
   margin-top: 42px;
   overflow: hidden;

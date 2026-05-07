@@ -1,6 +1,15 @@
 {{#if hasElectrobunRpc}}
 import type { RPCSchema } from "electrobun";
-import type { AppEnvironment{{#if hasDatabase}}, DatabaseStatus{{/if}} } from "../types";
+import type {
+  AppEnvironment,
+{{#if hasDatabase}}
+  DatabaseStatus,
+{{/if}}
+{{#if hasSettings}}
+  SettingValue,
+  SettingsStatus,
+{{/if}}
+} from "../types";
 
 export type MainViewRPC = {
   bun: RPCSchema<{
@@ -30,6 +39,19 @@ export type MainViewRPC = {
       getDatabaseStatus: {
         params: null;
         response: DatabaseStatus;
+      };
+      {{/if}}
+      {{#if hasSettings}}
+      getSettingsStatus: {
+        params: null;
+        response: SettingsStatus;
+      };
+      updateSetting: {
+        params: {
+          key: string;
+          value: SettingValue;
+        };
+        response: SettingsStatus;
       };
       {{/if}}
     };
