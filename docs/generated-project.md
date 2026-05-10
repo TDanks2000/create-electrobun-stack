@@ -15,9 +15,12 @@ my-app/
   vite.config.ts
   biome.json
   tsconfig.json
+  tests/
+    manifest.test.ts
   src/
     bun/
       index.ts
+      menu.ts
       window.ts
       rpc/
         handlers.ts
@@ -36,12 +39,16 @@ my-app/
         home.tsx
         lib/
           rpc.ts
+        routes/
+          __root.tsx
+          index.tsx
+        routeTree.gen.ts
         styles/
           globals.css
           app.css
 ```
 
-Options add files such as `src/bun/db/client.ts`, `src/bun/settings/store.ts`, `components.json`, `turbo.json`, `tests/manifest.test.ts`, and TanStack Router route files.
+That layout matches the default stack: TanStack Router, Electrobun RPC, app menu, local navigation rules, Tailwind CSS, and Bun tests. Options can add files such as `src/bun/db/client.ts`, `src/bun/settings/store.ts`, `components.json`, and `turbo.json`, or omit default files when you choose alternatives like `--router none`, `--app-menu none`, or `--testing none`.
 
 ## Runtime Model
 
@@ -52,7 +59,7 @@ The generated app has two main parts:
 
 The Bun process creates the window in `src/bun/window.ts`, loads the renderer through `views://`, and optionally attaches typed RPC handlers.
 
-The renderer starts from `src/views/main/main.tsx`, composes providers in `src/views/main/app.tsx`, and renders the starter app in `src/views/main/home.tsx`.
+The renderer starts from `src/views/main/main.tsx`, composes providers in `src/views/main/app.tsx`, and renders the starter app from `src/views/main/home.tsx`. With the default TanStack Router stack, the home view is mounted through `src/views/main/routes/index.tsx` and the generated route tree.
 
 Shared types live under `src/shared` so the Bun process and renderer can agree on RPC payloads and domain objects.
 

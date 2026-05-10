@@ -8,6 +8,13 @@ Primary commands:
 bunx create-electrobun-stack my-app
 bunx create-electrobun-stack add --cwd my-app --orm drizzle
 
+V1 public contract:
+- create-electrobun-stack <project-name> [options]
+- create-electrobun-stack add [options]
+- Supported operational flags: --dry-run, --yes, --cwd, --app-id, --install, --no-install, --git, --no-git, --list-templates, --version, --help.
+- Supported stack flags are the documented Stack Options and Electrobun Feature Options.
+- minimal is the canonical V1 template. standard and full are accepted aliases that render the same files as minimal while preserving manifest identity.
+
 Local repository command:
 
 bun run src/index.ts my-app
@@ -48,6 +55,7 @@ Generated app:
 - Typed RPC contract in src/shared/rpc/schema.ts when --api electrobun-rpc is selected.
 - ces.json manifest at project root.
 - Generated README tailored to selected options.
+- Default layout includes TanStack Router route files, src/bun/menu.ts, and tests/manifest.test.ts.
 
 Common generated commands with Bun:
 
@@ -113,8 +121,15 @@ Add command:
 
 Manifest:
 - ces.json includes $schema, version, createdAt, reproducibleCommand, projectName, packageName, appIdentifier, template, stack fields, addons, examples, git, install, and features.
+- V1 manifests are additive. Unknown fields should be tolerated. Breaking manifest migrations require a documented migration path.
 - Keep ces.json in source control.
 - Prefer create-electrobun-stack add over hand-editing ces.json.
+
+Release validation:
+- bun run validate:render scaffolds the representative V1 matrix and runs Biome against rendered projects.
+- bun run validate installs each representative generated project and runs typecheck, lint, tests when present, and build.
+- bun run pack:check runs npm pack --dry-run.
+- bun run pack:smoke packs the tarball, installs it into a temp consumer project, checks --version, dry-runs a scaffold, and scaffolds a real app without dependency install.
 
 Important paths in this repository:
 - src/options.ts defines option types, defaults, choices, validation, and flag parsing helpers.
@@ -122,6 +137,8 @@ Important paths in this repository:
 - src/cli.ts parses arguments and implements create/add flows.
 - src/manifest.ts creates and reads manifest stack metadata.
 - src/scaffold.ts renders templates and option overlays.
+- scripts/validate-generated-projects.ts runs the generated-project validation matrix.
+- scripts/smoke-packed-package.ts runs the packed-package smoke test.
 - templates/minimal/base contains common generated files.
 - templates/minimal/options contains feature overlays.
 - tests/cli.test.ts is the main behavior test suite.

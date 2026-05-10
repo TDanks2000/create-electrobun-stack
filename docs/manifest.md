@@ -56,11 +56,33 @@ Breaking manifest migrations require a documented migration path before release.
   "git": false,
   "install": false,
   "features": {
+    "appLock": false,
+    "biome": true,
+    "bunPackageManager": true,
+    "bunRuntime": true,
+    "bunTest": true,
+    "drizzle": false,
+    "editMenu": true,
     "electrobun": true,
+    "electrobunRpc": true,
+    "databaseSettings": false,
+    "hiddenInsetTitlebar": false,
+    "jsonSettings": false,
+    "nativeFileDialogs": false,
+    "localNavigationGuard": true,
+    "plainCss": false,
     "react": true,
+    "reactRouter": false,
+    "rpcExample": true,
+    "shadcn": false,
+    "settingsStore": false,
+    "sqlite": false,
+    "tanstackQuery": false,
     "tanstackRouter": true,
     "tailwindcss": true,
-    "bunTest": true
+    "turborepo": false,
+    "typescript": true,
+    "vite": true
   }
 }
 ```
@@ -107,26 +129,34 @@ Breaking manifest migrations require a documented migration path before release.
 
 `features` is intentionally redundant with top-level fields. It makes generated projects easy to inspect and gives the `add` command stable feature checks.
 
-Important booleans include:
+Generated V1 feature booleans include:
 
 - `appLock`
+- `biome`
+- `bunPackageManager`
+- `bunRuntime`
 - `bunTest`
-- `databaseSettings`
 - `drizzle`
 - `editMenu`
 - `electrobunRpc`
+- `databaseSettings`
 - `hiddenInsetTitlebar`
 - `jsonSettings`
-- `localNavigationGuard`
 - `nativeFileDialogs`
+- `localNavigationGuard`
+- `plainCss`
+- `react`
 - `reactRouter`
-- `settingsStore`
+- `rpcExample`
 - `shadcn`
+- `settingsStore`
 - `sqlite`
 - `tanstackQuery`
 - `tanstackRouter`
 - `tailwindcss`
 - `turborepo`
+- `typescript`
+- `vite`
 
 ## Editing Guidance
 

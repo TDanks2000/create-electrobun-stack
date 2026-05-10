@@ -162,7 +162,7 @@ Exit criteria:
 
 Goal: make the first-run path clear and keep generated project docs accurate.
 
-Status: in progress, with the V1 public contract, option boundaries, manifest compatibility, generated-project lifecycle, troubleshooting notes, release checks, and changelog now represented in docs. The final pass should be repeated after RC feedback and before `1.0.0`.
+Status: completed for the pre-RC documentation pass. The V1 public contract, option boundaries, manifest compatibility, generated-project lifecycle, troubleshooting notes, release checks, and changelog are represented in docs. The generated-project guide now reflects the actual default layout, including route, menu, and test files. The final pass should be repeated after RC feedback and before `1.0.0`.
 
 - Verify root README commands against the packed package.
 - Keep `docs/cli.md` aligned with `parseArgs`.
