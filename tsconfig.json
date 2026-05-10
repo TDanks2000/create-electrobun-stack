@@ -10,5 +10,5 @@
     "target": "ESNext",
     "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["src", "scripts"]
 }

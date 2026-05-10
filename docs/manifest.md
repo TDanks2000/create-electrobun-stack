@@ -11,14 +11,22 @@ The manifest is used for:
 
 The schema is published in this repository at [ces.schema.json](./ces.schema.json). Generated manifests point `$schema` at the package version on unpkg.
 
+## Compatibility Policy
+
+V1 manifests are additive. Existing generated projects should continue to work with future `create-electrobun-stack add` features as long as their `ces.json` stays in source control and keeps the required top-level stack fields.
+
+The generator may add new optional fields or feature booleans. Tools should ignore unknown fields because the schema allows additional properties.
+
+Breaking manifest migrations require a documented migration path before release. A future generator should not silently rewrite incompatible manifest shapes or drop existing stack state.
+
 ## Example
 
 ```json
 {
-  "$schema": "https://unpkg.com/create-electrobun-stack@0.1.1/docs/ces.schema.json",
-  "version": "0.1.1",
+  "$schema": "https://unpkg.com/create-electrobun-stack@1.0.0-rc.1/docs/ces.schema.json",
+  "version": "1.0.0-rc.1",
   "createdAt": "2026-05-10T00:00:00.000Z",
-  "reproducibleCommand": "bunx create-electrobun-stack@0.1.1 my-app --template minimal ...",
+  "reproducibleCommand": "bunx create-electrobun-stack@1.0.0-rc.1 my-app --template minimal ...",
   "projectName": "my-app",
   "packageName": "my-app",
   "appIdentifier": "dev.electrobun.myapp",

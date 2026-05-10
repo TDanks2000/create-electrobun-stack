@@ -141,6 +141,7 @@ Some options add commands. For example, `--addons turborepo` adds `bun run check
 - [Add command](./docs/add-command.md): how to grow an existing generated app.
 - [Manifest reference](./docs/manifest.md): `ces.json` fields and schema.
 - [Templates](./docs/templates.md): how template overlays are organized.
+- [V1 release plan](./docs/v1-plan.md): release gates for moving from pre-release to `1.0.0`.
 - [LLM guide](./docs/llm.txt): compact agent-oriented reference.
 
 ## Development
@@ -151,9 +152,19 @@ bun run build
 bun test
 bun run typecheck
 bun run lint
+bun run validate:render
 npm pack --dry-run
 ```
 
 The CLI entrypoint is `src/index.ts`. Stack choices live in `src/options.ts`, manifest generation lives in `src/manifest.ts`, and template rendering lives in `src/scaffold.ts`.
 
 The published npm package ships the built CLI from `dist/index.mjs` plus `templates/` and `docs/`. Run `bun run build` before local package checks; `npm pack --dry-run` also runs the build through `prepack`. The bin keeps a Node shebang for npm compatibility; `bunx --bun create-electrobun-stack@latest` forces Bun to run the same built CLI.
+
+Release checks:
+
+```bash
+bun run validate
+bun run pack:smoke
+```
+
+`bun run validate:render` scaffolds the representative V1 matrix and runs Biome against the rendered output without installing generated dependencies. `bun run validate` performs the slower release gate: it installs each generated project and runs typecheck, lint, tests when present, and build. `bun run pack:smoke` proves the packed tarball can be installed and used through its published bin.

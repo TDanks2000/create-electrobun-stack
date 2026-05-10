@@ -10,6 +10,7 @@ This folder is the durable reference for `create-electrobun-stack`. It is meant 
 - [Add command](./add-command.md) explains how existing generated apps are expanded through `ces.json`.
 - [Manifest reference](./manifest.md) documents `ces.json` and links to the JSON schema.
 - [Templates](./templates.md) explains the template overlay structure used by the generator.
+- [V1 release plan](./v1-plan.md) tracks the work needed to move from pre-release to `1.0.0`.
 - [LLM guide](./llm.txt) is a compact plain-text summary for agents and retrieval systems.
 
 ## Recommended Reading Path

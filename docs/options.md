@@ -2,6 +2,17 @@
 
 This page explains what each option scaffolds and where to look after the project is generated.
 
+## V1 Support Boundary
+
+All options documented on this page are V1-supported. Supported means the option is part of the public CLI contract, is represented in `ces.json`, and is covered by unit tests, render validation, or the release validation matrix.
+
+Some categories are intentionally narrow for V1:
+
+- `--frontend react` is fixed because React is the only renderer maintained by the template.
+- `--runtime bun` is fixed because Electrobun apps run through Bun.
+- `--database sqlite` and `--orm drizzle` are the only persistence stack with generated files because they map cleanly to Bun SQLite and local desktop storage.
+- `--template standard` and `--template full` are accepted compatibility aliases for the same V1 template source as `minimal`; they are not advertised as distinct stacks until their generated output differs and has release-gate coverage.
+
 ## Core App
 
 ### `--template minimal|standard|full`

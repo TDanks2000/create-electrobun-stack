@@ -51,11 +51,17 @@ jobs:
       - name: Test
         run: bun test
 
+      - name: Validate generated projects
+        run: bun run validate
+
       - name: Build
         run: bun run build
 
       - name: Check package contents
         run: bun run pack:check
+
+      - name: Smoke test packed package
+        run: bun run pack:smoke
 
       - name: Publish to npm
         if: github.event_name == 'release' || inputs.dry_run == false

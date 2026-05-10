@@ -1,6 +1,6 @@
 {
   "name": "create-electrobun-stack",
-  "version": "0.1.1",
+  "version": "1.0.0-rc.1",
   "description": "Scaffold a modern Electrobun desktop app.",
   "type": "module",
   "main": "./dist/index.mjs",
@@ -30,9 +30,12 @@
     "start": "bun run src/index.ts",
     "build": "tsdown --config-loader native",
     "pack:check": "npm pack --dry-run",
+    "pack:smoke": "bun scripts/smoke-packed-package.ts",
     "prepack": "bun run build",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
+    "validate": "bun scripts/validate-generated-projects.ts --full",
+    "validate:render": "bun scripts/validate-generated-projects.ts",
     "lint": "biome check .",
     "format": "biome check --write ."
   },
