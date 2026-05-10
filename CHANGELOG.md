@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-rc.2
+
+### Changed
+
+- Refreshes the release candidate after completing the V1 public-contract, validation, publishing dry-run, and documentation phases.
+- Keeps the package behavior aligned with the pre-RC documentation pass and current `main`.
+
 ## 1.0.0-rc.1
 
 ### Added
