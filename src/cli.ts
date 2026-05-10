@@ -99,8 +99,8 @@ const createAppIdentifier = (packageName: string): string => {
 const printTemplates = (): void => {
   logger.heading("Templates");
   logger.info("  minimal   implemented, default");
-  logger.info("  standard  implemented profile");
-  logger.info("  full      implemented profile");
+  logger.info("  standard  accepted alias for minimal in V1");
+  logger.info("  full      accepted alias for minimal in V1");
 };
 
 const printHelp = (): void => {

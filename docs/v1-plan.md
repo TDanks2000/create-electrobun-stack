@@ -30,6 +30,8 @@ The release is ready when:
 
 Goal: decide what V1 promises and avoid accidental breaking changes after release.
 
+Status: completed in the repo. Evidence lives in `docs/cli.md`, `docs/options.md`, `docs/manifest.md`, `docs/add-command.md`, `src/cli.ts`, `src/prompts.ts`, and `tests/cli.test.ts`.
+
 - Freeze the V1 CLI command shape:
   - `create-electrobun-stack <project>`
   - `create-electrobun-stack add`
@@ -51,6 +53,8 @@ Exit criteria:
 ## Phase 2: Expand Existing Option Categories
 
 Goal: make the stack chooser feel complete before V1 without adding new categories or padding the CLI with weak options.
+
+Status: scoped for V1. The option set includes multiple meaningful choices in the categories that are ready for V1, and intentionally narrow categories are documented in `docs/options.md`. Post-V1 option expansion is tracked in GitHub issue #3.
 
 Use these rules for the V1 option depth pass:
 
@@ -104,6 +108,8 @@ Exit criteria:
 
 Goal: test real generated projects, not just renderer template output.
 
+Status: implemented locally. `tests/cli.test.ts` keeps the fast parser, manifest, add-command, and template-render behavior covered. `scripts/validate-generated-projects.ts` scaffolds the representative matrix below; `bun run validate:render` runs the fast render check in CI, and `bun run validate` runs dependency install plus typecheck, lint, tests when present, and build for release validation.
+
 - Add integration tests that scaffold representative projects into temp directories.
 - For each representative project, run:
   - dependency installation with the selected package manager when practical,
@@ -133,6 +139,8 @@ Exit criteria:
 
 Goal: make npm release boring.
 
+Status: implemented locally, pending an actual workflow dry run from GitHub. `bun run pack:check` verifies package contents, and `bun run pack:smoke` packs the tarball, installs it into a temp consumer project, checks `--version`, dry-runs a scaffold, and scaffolds a real app without installing generated dependencies. The publish workflow supports GitHub releases and `workflow_dispatch` dry runs.
+
 - Confirm `npm pack --dry-run` includes only intended files.
 - Add package smoke tests against the packed tarball:
   - install the tarball into a temp project,
@@ -153,6 +161,8 @@ Exit criteria:
 ## Phase 5: Documentation Pass
 
 Goal: make the first-run path clear and keep generated project docs accurate.
+
+Status: in progress, with the V1 public contract, option boundaries, manifest compatibility, generated-project lifecycle, troubleshooting notes, release checks, and changelog now represented in docs. The final pass should be repeated after RC feedback and before `1.0.0`.
 
 - Verify root README commands against the packed package.
 - Keep `docs/cli.md` aligned with `parseArgs`.

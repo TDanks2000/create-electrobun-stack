@@ -13,6 +13,34 @@ Some categories are intentionally narrow for V1:
 - `--database sqlite` and `--orm drizzle` are the only persistence stack with generated files because they map cleanly to Bun SQLite and local desktop storage.
 - `--template standard` and `--template full` are accepted compatibility aliases for the same V1 template source as `minimal`; they are not advertised as distinct stacks until their generated output differs and has release-gate coverage.
 
+## V1 Option Depth Decisions
+
+| Category | V1 decision |
+| --- | --- |
+| Template | `minimal` is canonical; `standard` and `full` are accepted aliases only. |
+| Frontend | Fixed to React for V1. Additional renderers are post-V1 work. |
+| Router | `tanstack-router`, `react-router`, and `none` are distinct supported choices. |
+| Query | `tanstack-query` and `none` are enough for V1. |
+| Styling | Tailwind CSS and plain CSS cover framework and no-framework styling. |
+| UI | shadcn config and `none` are supported; generated components are left to the app. |
+| Auth | `app-lock` is a local UI lock, not remote auth; deeper auth is post-V1 work. |
+| Database | SQLite is the V1 persistence target because it is local and Bun-native. |
+| ORM | Drizzle is the V1 ORM option; another ORM needs clear desktop value before inclusion. |
+| DB setup | Seed data and `none` are the V1 setup choices. |
+| Settings | JSON and database-backed settings are both supported through the same typed RPC surface. |
+| Package manager | Bun, npm, pnpm, and Yarn are supported for install/run command text. |
+| Testing | Bun tests and `none` are supported; desktop E2E testing is post-V1 work. |
+| Addons | Turborepo and `none` are supported. |
+| Examples | RPC example and `none` are supported; option-specific examples are post-V1 work. |
+| API | Electrobun RPC and static/no-RPC modes are supported. |
+| App menu | Native Edit menu and `none` are supported. |
+| Build env | `dev`, `canary`, and `stable` map directly to Electrobun build flags. |
+| Build targets | `current` and `all` map directly to Electrobun build flags. |
+| Navigation | Local-only navigation rules and `none` are supported. |
+| Native utils | File dialogs and `none` are supported. More utilities are post-V1 work. |
+| Window style | Native and hidden inset titlebar modes are supported. |
+| Runtime | Fixed to Bun for V1 because Electrobun runs the native process through Bun. |
+
 ## Core App
 
 ### `--template minimal|standard|full`

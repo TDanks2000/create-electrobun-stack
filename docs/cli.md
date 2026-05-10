@@ -19,6 +19,19 @@ bun run src/index.ts add --cwd <project-directory> [options]
 
 The npm package exposes `create-electrobun-stack` from the built `dist/index.mjs` file. Plain npm and npx execution require Node.js `>=20.19.0`; `bunx --bun create-electrobun-stack@latest` forces Bun to run the same bin. Use `npm install -g create-electrobun-stack` if you want the global command.
 
+## V1 Public Contract
+
+V1 supports two command shapes:
+
+- `create-electrobun-stack <project-name> [options]`
+- `create-electrobun-stack add [options]`
+
+The supported operational flags are `--dry-run`, `--yes`, `--cwd`, `--app-id`, `--install`, `--no-install`, `--git`, `--no-git`, `--list-templates`, `--version`, and `--help`.
+
+The supported stack flags are the flags listed in the Stack Options and Electrobun Feature Options tables below. New flags may be added in minor releases, but V1-compatible generators should not silently change or remove these command shapes.
+
+For V1, `minimal` is the canonical template. `standard` and `full` remain accepted aliases for compatibility and manifest identity, but they intentionally render the same file set as `minimal`.
+
 ## Commands
 
 ### Create

@@ -260,6 +260,20 @@ describe("CLI process", () => {
     expect(result.stderr).toBe("");
   });
 
+  test("--list-templates describes standard and full as V1 aliases", async () => {
+    const result = await runCliProcess(["--list-templates"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("minimal   implemented, default");
+    expect(result.stdout).toContain(
+      "standard  accepted alias for minimal in V1",
+    );
+    expect(result.stdout).toContain(
+      "full      accepted alias for minimal in V1",
+    );
+    expect(result.stderr).toBe("");
+  });
+
   test("--dry-run does not create the target directory", async () => {
     const root = await makeTempRoot();
     const result = await runCliProcess([
@@ -503,6 +517,49 @@ describe("final screen", () => {
 });
 
 describe("generated minimal template", () => {
+  test("records accepted template aliases while rendering the same stable source", async () => {
+    const root = await makeTempRoot();
+    const stack = { ...defaultStackOptions, testing: "none" };
+    const templates = ["minimal", "standard", "full"] as const;
+
+    for (const template of templates) {
+      await scaffoldProject({
+        appIdentifier: "dev.electrobun.sampleapp",
+        packageName: "sample-app",
+        projectName: "sample-app",
+        stack,
+        targetDirectory: join(root, template),
+        template,
+      });
+    }
+
+    const minimalHome = await readGenerated(
+      join(root, "minimal"),
+      "src/views/main/home.tsx",
+    );
+    const standardHome = await readGenerated(
+      join(root, "standard"),
+      "src/views/main/home.tsx",
+    );
+    const fullHome = await readGenerated(
+      join(root, "full"),
+      "src/views/main/home.tsx",
+    );
+    const standardManifest = await readGeneratedManifest(
+      join(root, "standard"),
+    );
+    const fullManifest = await readGeneratedManifest(join(root, "full"));
+
+    expect(standardHome).toBe(minimalHome);
+    expect(fullHome).toBe(minimalHome);
+    expect(standardManifest.template).toBe("standard");
+    expect(standardManifest.reproducibleCommand).toContain(
+      "--template standard",
+    );
+    expect(fullManifest.template).toBe("full");
+    expect(fullManifest.reproducibleCommand).toContain("--template full");
+  });
+
   test("renders Biome-clean representative projects", async () => {
     const representativeStacks = [
       { ...defaultStackOptions },

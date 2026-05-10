@@ -21,12 +21,12 @@ const templateChoices = [
   {
     value: "standard",
     label: "Standard",
-    hint: "standard profile using the stable scaffold",
+    hint: "V1 alias for the stable minimal scaffold",
   },
   {
     value: "full",
     label: "Full",
-    hint: "full profile using the stable scaffold",
+    hint: "V1 alias for the stable minimal scaffold",
   },
 ] satisfies Array<Option<TemplateName>>;
 
