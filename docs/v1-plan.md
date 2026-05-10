@@ -139,7 +139,7 @@ Exit criteria:
 
 Goal: make npm release boring.
 
-Status: completed for local and workflow dry-run gates. `bun run pack:check` verifies package contents, and `bun run pack:smoke` packs the tarball, installs it into a temp consumer project, checks `--version`, dry-runs a scaffold, and scaffolds a real app without installing generated dependencies. The publish workflow supports GitHub releases and `workflow_dispatch` dry runs. The `Publish` workflow dry run for `a9777406d914a43c89376705f4ffdb5927961fda` passed in GitHub Actions run `25640509300`; `Publish to npm` was skipped and `Skip publish` succeeded.
+Status: completed for local and workflow dry-run gates. `bun run pack:check` verifies package contents, and `bun run pack:smoke` packs the tarball, installs it into a temp consumer project, checks `--version`, dry-runs a scaffold, and scaffolds a real app without installing generated dependencies. The publish workflow supports GitHub releases and `workflow_dispatch` dry runs, and resolves prerelease publishes to the `next` npm dist-tag by default. The `Publish` workflow dry run for `a9777406d914a43c89376705f4ffdb5927961fda` passed in GitHub Actions run `25640509300`; `Publish to npm` was skipped and `Skip publish` succeeded.
 
 - Confirm `npm pack --dry-run` includes only intended files.
 - Add package smoke tests against the packed tarball:

@@ -10,6 +10,10 @@ on:
         description: Run all checks without publishing to npm.
         type: boolean
         default: true
+      npm_tag:
+        description: npm dist-tag to use when publishing manually.
+        type: string
+        default: next
 
 permissions:
   contents: read
@@ -63,11 +67,25 @@ jobs:
       - name: Smoke test packed package
         run: bun run pack:smoke
 
+      - name: Resolve npm publish tag
+        id: publish-tag
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.npm_tag }}" ]; then
+            tag="${{ inputs.npm_tag }}"
+          elif [[ "$version" == *-* ]]; then
+            tag="next"
+          else
+            tag="latest"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Resolved npm dist-tag '$tag' for version '$version'."
+
       - name: Publish to npm
         if: github.event_name == 'release' || inputs.dry_run == false
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        run: npm publish --provenance --access public --tag "${{ steps.publish-tag.outputs.tag }}"
 
       - name: Skip publish
         if: github.event_name == 'workflow_dispatch' && inputs.dry_run
