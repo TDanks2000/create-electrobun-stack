@@ -1,8 +1,8 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
   "root": false,
   "files": {
-    "includes": ["**", "!.turbo"]
+    "includes": ["**", "!.turbo"{{#if hasTanstackRouter}}, "!src/views/main/routeTree.gen.ts"{{/if}}]
   },
   "formatter": {
     "indentStyle": "space",

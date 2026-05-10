@@ -1,48 +1,44 @@
+import { existsSync, watch } from "node:fs";
+import { join } from "node:path";
 import { BrowserWindow, Utils } from "electrobun/bun";
 import { APP_NAME } from "../shared/constants";
 {{#if hasElectrobunRpc}}
 import { mainViewRPC } from "./rpc/router";
 {{/if}}
+
+const MAIN_VIEW_URL = "views://main/index.html";
+const DEV_VIEW_DIRECTORY = join(process.cwd(), ".electrobun", "views", "main");
+const DEV_RELOAD_DELAY_MS = 120;
 {{#if hasNavigationGuard}}
 
-const isAllowedNavigation = (url: string): boolean =>
-  url.startsWith("views://") || url === "about:blank";
-
-type NavigationEvent = {
-  data?: {
-    detail?: unknown;
-    url?: unknown;
-  };
-  response?: {
-    allow: boolean;
-  };
-};
-
-const isNavigationEvent = (event: unknown): event is NavigationEvent =>
-  typeof event === "object" && event !== null;
-
-const getNavigationUrl = (event: unknown): string | null => {
-  if (!isNavigationEvent(event)) {
-    return null;
-  }
-
-  const data = event.data;
-
-  if (!data || typeof data !== "object") {
-    return null;
-  }
-
-  if (typeof data.detail === "string") {
-    return data.detail;
-  }
-
-  if (typeof data.url === "string") {
-    return data.url;
-  }
-
-  return null;
-};
+const LOCAL_NAVIGATION_RULES = ["^*", "views://*", "about:blank"];
 {{/if}}
+
+const setupDevViewReloader = (window: BrowserWindow): void => {
+  if (process.env.CES_DEV_RELOAD !== "1" || !existsSync(DEV_VIEW_DIRECTORY)) {
+    return;
+  }
+
+  let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+  const watcher = watch(DEV_VIEW_DIRECTORY, { persistent: false }, () => {
+    if (reloadTimer) {
+      clearTimeout(reloadTimer);
+    }
+
+    reloadTimer = setTimeout(() => {
+      reloadTimer = null;
+      window.webview.loadURL(MAIN_VIEW_URL);
+    }, DEV_RELOAD_DELAY_MS);
+  });
+
+  window.on("close", () => {
+    if (reloadTimer) {
+      clearTimeout(reloadTimer);
+    }
+
+    watcher.close();
+  });
+};
 
 export const createMainWindow = (): BrowserWindow => {
   const window = new BrowserWindow({
@@ -53,32 +49,21 @@ export const createMainWindow = (): BrowserWindow => {
       y: 120,
     },
 {{#if hasHiddenInsetTitlebar}}
-    styleMask: {
-      Closable: true,
-      FullSizeContentView: true,
-      Miniaturizable: true,
-      Resizable: true,
-      Titled: true,
-    },
     titleBarStyle: "hiddenInset",
 {{/if}}
 {{#if hasElectrobunRpc}}
     rpc: mainViewRPC,
 {{/if}}
     title: APP_NAME,
-    url: "views://main/index.html",
+    url: MAIN_VIEW_URL,
   });
 
 {{#if hasNavigationGuard}}
-  window.webview.on("will-navigate", (event: unknown) => {
-    const url = getNavigationUrl(event);
-
-    if ((!url || !isAllowedNavigation(url)) && isNavigationEvent(event)) {
-      event.response = { allow: false };
-    }
-  });
+  window.webview.setNavigationRules(LOCAL_NAVIGATION_RULES);
 
 {{/if}}
+  setupDevViewReloader(window);
+
   window.on("close", () => {
     Utils.quit();
   });

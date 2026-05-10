@@ -63,6 +63,9 @@
     "install": {
       "type": "boolean"
     },
+    "nativeUtils": {
+      "enum": ["none", "file-dialogs"]
+    },
     "orm": {
       "enum": ["none", "drizzle"]
     },
@@ -75,8 +78,14 @@
     "projectName": {
       "type": "string"
     },
+    "query": {
+      "enum": ["none", "tanstack-query"]
+    },
     "reproducibleCommand": {
       "type": "string"
+    },
+    "router": {
+      "enum": ["none", "tanstack-router", "react-router"]
     },
     "runtime": {
       "enum": ["bun"]
@@ -118,6 +127,8 @@
     "database",
     "orm",
     "runtime",
+    "query",
+    "router",
     "settings",
     "buildEnv",
     "buildTargets",
@@ -132,6 +143,7 @@
     "dbSetup",
     "api",
     "navigation",
+    "nativeUtils",
     "windowStyle",
     "testing",
     "git",

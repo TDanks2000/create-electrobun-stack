@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseArgs } from "../src/cli";
+import { createFinalScreen, parseArgs } from "../src/cli";
 import type { CesManifest } from "../src/manifest";
 import { defaultStackOptions, validateStackOptions } from "../src/options";
 import { scaffoldProject } from "../src/scaffold";
@@ -37,6 +37,28 @@ const runCliProcess = async (
     stdin: "ignore",
     stdout: "pipe",
   });
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(process.stdout).text(),
+    new Response(process.stderr).text(),
+    process.exited,
+  ]);
+
+  return { exitCode, stderr, stdout };
+};
+
+const runGeneratedBiomeCheck = async (
+  targetDirectory: string,
+): Promise<{ exitCode: number; stderr: string; stdout: string }> => {
+  const process = Bun.spawn(
+    [join(repoRoot, "node_modules", ".bin", "biome"), "check", "."],
+    {
+      cwd: targetDirectory,
+      env: { ...Bun.env, NO_COLOR: "1" },
+      stderr: "pipe",
+      stdin: "ignore",
+      stdout: "pipe",
+    },
+  );
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(process.stdout).text(),
     new Response(process.stderr).text(),
@@ -84,6 +106,10 @@ describe("parseArgs", () => {
       "--git",
       "--styling",
       "css",
+      "--router",
+      "react-router",
+      "--query",
+      "tanstack-query",
       "--examples=none",
       "--database",
       "sqlite",
@@ -93,6 +119,8 @@ describe("parseArgs", () => {
       "--app-menu",
       "none",
       "--navigation=none",
+      "--native-utils",
+      "file-dialogs",
       "--window-style",
       "hidden-inset",
       "--build-env=stable",
@@ -114,12 +142,15 @@ describe("parseArgs", () => {
     expect(options.install).toBe(false);
     expect(options.git).toBe(true);
     expect(options.stack.styling).toBe("css");
+    expect(options.stack.router).toBe("react-router");
+    expect(options.stack.query).toBe("tanstack-query");
     expect(options.stack.examples).toBe("none");
     expect(options.stack.database).toBe("sqlite");
     expect(options.stack.orm).toBe("drizzle");
     expect(options.stack.testing).toBe("none");
     expect(options.stack.appMenu).toBe("none");
     expect(options.stack.navigation).toBe("none");
+    expect(options.stack.nativeUtils).toBe("file-dialogs");
     expect(options.stack.windowStyle).toBe("hidden-inset");
     expect(options.stack.buildEnv).toBe("stable");
     expect(options.stack.buildTargets).toBe("all");
@@ -128,6 +159,23 @@ describe("parseArgs", () => {
     expect(options.stack.addons).toBe("turborepo");
     expect(options.stack.dbSetup).toBe("seed");
     expect(options.stack.settings).toBe("json");
+  });
+
+  test("parses add as a subcommand for existing stacks", () => {
+    const options = parseArgs([
+      "add",
+      "--cwd",
+      "sample-app",
+      "--database",
+      "sqlite",
+      "--no-install",
+    ]);
+
+    expect(options.command).toBe("add");
+    expect(options.projectName).toBeNull();
+    expect(options.stack.database).toBe("sqlite");
+    expect(options.stackFlags.has("database")).toBe(true);
+    expect(options.install).toBe(false);
   });
 
   test("omits default RPC example when API is disabled", () => {
@@ -178,6 +226,15 @@ describe("parseArgs", () => {
         settings: "json",
       }),
     ).toThrow("Settings storage requires");
+
+    expect(() =>
+      validateStackOptions({
+        ...defaultStackOptions,
+        api: "none",
+        examples: "none",
+        nativeUtils: "file-dialogs",
+      }),
+    ).toThrow("Native utility examples require");
 
     expect(() =>
       validateStackOptions({
@@ -233,21 +290,319 @@ describe("CLI process", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Package manager: pnpm");
   });
+
+  test("prints contextual next steps after scaffolding", async () => {
+    const root = await makeTempRoot();
+    const result = await runCliProcess([
+      "sample-app",
+      "--yes",
+      "--no-install",
+      "--cwd",
+      root,
+      "--package-manager",
+      "pnpm",
+      "--testing",
+      "none",
+    ]);
+    const projectPath = join(root, "sample-app");
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Dependencies: install skipped");
+    expect(result.stdout).toContain("Next steps:");
+    expect(result.stdout).toContain(`1. cd ${projectPath}`);
+    expect(result.stdout).toContain("2. pnpm install");
+    expect(result.stdout).toContain("Install dependencies");
+    expect(result.stdout).toContain("3. pnpm dev");
+    expect(result.stdout).toContain("Start the Electrobun app");
+    expect(result.stdout).toContain("Useful commands:");
+    expect(result.stdout).toContain("pnpm typecheck");
+    expect(result.stdout).toContain("pnpm lint");
+    expect(result.stdout).toContain("pnpm build");
+    expect(result.stdout).not.toContain("pnpm test");
+  });
+
+  test("adds requested features to an existing stack from ces.json", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      testing: "none",
+    });
+    const originalManifest = await readGeneratedManifest(target);
+    const result = await runCliProcess([
+      "add",
+      "--cwd",
+      target,
+      "--settings",
+      "database",
+      "--orm",
+      "drizzle",
+      "--testing",
+      "bun",
+      "--no-install",
+    ]);
+    const packageJson = await readGenerated(target, "package.json");
+    const types = await readGenerated(target, "src/shared/types.ts");
+    const schema = await readGenerated(target, "src/shared/rpc/schema.ts");
+    const dbSchema = await readGenerated(target, "src/bun/db/schema.ts");
+    const router = await readGenerated(target, "src/bun/rpc/router.ts");
+    const store = await readGenerated(target, "src/bun/settings/store.ts");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Updated sample-app from ces.json");
+    expect(result.stdout).toContain("database: none -> sqlite");
+    expect(result.stdout).toContain("orm: none -> drizzle");
+    expect(result.stdout).toContain("settings: none -> database");
+    expect(result.stdout).toContain("testing: none -> bun");
+    expect(result.stdout).toContain("Dependencies: install skipped");
+    expect(packageJson).toContain('"test": "bun test"');
+    expect(packageJson).toContain('"drizzle-orm"');
+    expect(types).toContain("DatabaseStatus");
+    expect(types).toContain("SettingsStatus");
+    expect(schema).toContain("getDatabaseStatus");
+    expect(schema).toContain("updateSetting");
+    expect(dbSchema).toContain("appSettings");
+    expect(router).toContain("getSettingsStatus");
+    expect(store).toContain('storage: "database"');
+    expect(
+      await Bun.file(join(target, "tests/manifest.test.ts")).exists(),
+    ).toBe(true);
+    expect(manifest.createdAt).toBe(originalManifest.createdAt);
+    expect(manifest.database).toBe("sqlite");
+    expect(manifest.orm).toBe("drizzle");
+    expect(manifest.settings).toBe("database");
+    expect(manifest.testing).toBe("bun");
+    expect(manifest.addons).toContain("settings-database");
+    expect(manifest.addons).toContain("bun-test");
+    expect(manifest.features).toMatchObject({
+      databaseSettings: true,
+      bunTest: true,
+      drizzle: true,
+      settingsStore: true,
+      sqlite: true,
+    });
+  });
+
+  test("infers add prerequisites from the existing manifest", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      styling: "css",
+      testing: "none",
+    });
+    const result = await runCliProcess([
+      "add",
+      "--cwd",
+      target,
+      "--ui",
+      "shadcn",
+      "--no-install",
+    ]);
+    const packageJson = await readGenerated(target, "package.json");
+    const globals = await readGenerated(
+      target,
+      "src/views/main/styles/globals.css",
+    );
+    const manifest = await readGeneratedManifest(target);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("styling: css -> tailwindcss");
+    expect(result.stdout).toContain("ui: none -> shadcn");
+    expect(await Bun.file(join(target, "components.json")).exists()).toBe(true);
+    expect(packageJson).toContain('"tailwindcss"');
+    expect(packageJson).toContain('"shadcn"');
+    expect(globals).toContain('@import "shadcn/tailwind.css"');
+    expect(manifest.styling).toBe("tailwindcss");
+    expect(manifest.ui).toBe("shadcn");
+    expect(manifest.features).toMatchObject({
+      shadcn: true,
+      tailwindcss: true,
+    });
+  });
+
+  test("add command can enable native file dialogs and infer RPC", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      api: "none",
+      examples: "none",
+      testing: "none",
+    });
+    const result = await runCliProcess([
+      "add",
+      "--cwd",
+      target,
+      "--native-utils",
+      "file-dialogs",
+      "--no-install",
+    ]);
+    const handlers = await readGenerated(target, "src/bun/rpc/handlers.ts");
+    const window = await readGenerated(target, "src/bun/window.ts");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("api: none -> electrobun-rpc");
+    expect(result.stdout).toContain("nativeUtils: none -> file-dialogs");
+    expect(handlers).toContain("Utils.openFileDialog");
+    expect(window).toContain("rpc: mainViewRPC");
+    expect(manifest.api).toBe("electrobun-rpc");
+    expect(manifest.nativeUtils).toBe("file-dialogs");
+    expect(manifest.features.nativeFileDialogs).toBe(true);
+  });
+
+  test("add command requires ces.json", async () => {
+    const root = await makeTempRoot();
+    const result = await runCliProcess([
+      "add",
+      "--cwd",
+      root,
+      "--database",
+      "sqlite",
+      "--no-install",
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Could not find ces.json");
+  });
+});
+
+describe("final screen", () => {
+  test("omits install from next steps when dependencies are installed", () => {
+    const lines = createFinalScreen({
+      gitInitialized: true,
+      installAttempted: true,
+      installed: true,
+      projectName: "sample-app",
+      stack: { ...defaultStackOptions },
+      targetDirectory: join(repoRoot, "sample-app"),
+    });
+
+    expect(lines).toContain("Dependencies: installed");
+    expect(lines).toContain("Git: initialized");
+    expect(lines).toContain("1. cd sample-app  Enter the project");
+    expect(lines).toContain("2. bun run dev    Start the Electrobun app");
+    expect(lines.join("\n")).not.toContain("bun install");
+    expect(lines.join("\n")).toContain("bun test");
+  });
+
+  test("uses Turborepo check wording that matches the testing stack", () => {
+    const lines = createFinalScreen({
+      gitInitialized: false,
+      installAttempted: false,
+      installed: false,
+      projectName: "sample-app",
+      stack: {
+        ...defaultStackOptions,
+        addons: "turborepo",
+        testing: "none",
+      },
+      targetDirectory: join(repoRoot, "sample-app"),
+    });
+    const output = lines.join("\n");
+
+    expect(output).toContain("bun run check  Run typecheck and lint");
+    expect(output).not.toContain("and tests");
+  });
 });
 
 describe("generated minimal template", () => {
+  test("renders Biome-clean representative projects", async () => {
+    const representativeStacks = [
+      { ...defaultStackOptions },
+      {
+        ...defaultStackOptions,
+        addons: "turborepo",
+        auth: "app-lock",
+        buildEnv: "stable",
+        buildTargets: "all",
+        database: "sqlite",
+        dbSetup: "seed",
+        nativeUtils: "file-dialogs",
+        orm: "drizzle",
+        query: "tanstack-query",
+        router: "react-router",
+        settings: "database",
+        ui: "shadcn",
+        windowStyle: "hidden-inset",
+      },
+      {
+        ...defaultStackOptions,
+        api: "none",
+        appMenu: "none",
+        examples: "none",
+        navigation: "none",
+        router: "none",
+        styling: "css",
+        testing: "none",
+      },
+    ] satisfies Array<typeof defaultStackOptions>;
+
+    for (const stack of representativeStacks) {
+      const target = await renderMinimal(stack);
+      const result = await runGeneratedBiomeCheck(target);
+
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Generated Biome check failed for ${target}\n${result.stdout}${result.stderr}`,
+        );
+      }
+
+      expect(result.exitCode).toBe(0);
+    }
+  });
+
   test("renders the default RPC example", async () => {
     const target = await renderMinimal({ ...defaultStackOptions });
     const route = await readGenerated(
       target,
       "src/views/main/routes/index.tsx",
     );
+    const home = await readGenerated(target, "src/views/main/home.tsx");
+    const rootRoute = await readGenerated(
+      target,
+      "src/views/main/routes/__root.tsx",
+    );
+    const routeTree = await readGenerated(
+      target,
+      "src/views/main/routeTree.gen.ts",
+    );
+    const appStyles = await readGenerated(
+      target,
+      "src/views/main/styles/app.css",
+    );
+    const biome = await readGenerated(target, "biome.json");
+    const packageJson = await readGenerated(target, "package.json");
     const readme = await readGenerated(target, "README.md");
+    const viteConfig = await readGenerated(target, "vite.config.ts");
     const manifestText = await readGenerated(target, "ces.json");
     const manifest = await readGeneratedManifest(target);
 
-    expect(route).toContain("rpc.request.greet");
-    expect(route).toContain("rpc.send.logToBun");
+    expect(packageJson).toContain('"@tanstack/router-plugin"');
+    expect(packageJson).not.toContain('"@tanstack/react-query"');
+    expect(packageJson).toContain('"cross-env"');
+    expect(packageJson).toContain("CES_DEV_RELOAD=1 electrobun dev");
+    expect(viteConfig).toContain(
+      'import { tanstackRouter } from "@tanstack/router-plugin/vite"',
+    );
+    expect(viteConfig).toContain('routesDirectory: "./routes"');
+    expect(viteConfig).toContain('generatedRouteTree: "./routeTree.gen.ts"');
+    expect(viteConfig.indexOf("tanstackRouter({")).toBeLessThan(
+      viteConfig.indexOf("react(),"),
+    );
+    expect(rootRoute).toContain("export const Route = createRootRoute");
+    expect(route).toContain('export const Route = createFileRoute("/")');
+    expect(route).toContain("component: Home");
+    expect(route).not.toContain("createRoute({");
+    expect(routeTree).toContain("FileRoutesByPath");
+    expect(routeTree).toContain("_addFileChildren");
+    expect(biome).toContain("!src/views/main/routeTree.gen.ts");
+    expect(home).toContain("launchSteps");
+    expect(home).toContain("Launch sequence");
+    expect(home).toContain('role="progressbar"');
+    expect(home).toContain("toggleStep");
+    expect(home).toContain("rpc.request.greet");
+    expect(home).toContain("rpc.send.logToBun");
+    expect(appStyles).toContain(".steps-section");
+    expect(appStyles).toContain(".step-card");
+    expect(appStyles).toContain("height: 100dvh");
+    expect(appStyles).toContain("overflow-y: auto");
     expect(readme).toContain("## RPC Example");
     expect(manifestText).toContain('"frontend": ["react"]');
     expect(manifestText).toContain('"addons": [');
@@ -257,8 +612,11 @@ describe("generated minimal template", () => {
     expect(manifest.reproducibleCommand).toContain(
       "bunx create-electrobun-stack@",
     );
+    expect(manifest.reproducibleCommand).toContain("--router tanstack-router");
+    expect(manifest.reproducibleCommand).toContain("--query none");
     expect(manifest.reproducibleCommand).toContain("--testing bun");
     expect(manifest.reproducibleCommand).toContain("--navigation local-only");
+    expect(manifest.reproducibleCommand).toContain("--native-utils none");
     expect(manifest.reproducibleCommand).toContain("--window-style native");
     expect(manifest.reproducibleCommand).toContain("--settings none");
     expect(manifest.reproducibleCommand).toContain("--no-install");
@@ -267,17 +625,21 @@ describe("generated minimal template", () => {
     expect(manifest.appIdentifier).toBe("dev.electrobun.sampleapp");
     expect(manifest.template).toBe("minimal");
     expect(manifest.frontend).toEqual(["react"]);
+    expect(manifest.router).toBe("tanstack-router");
+    expect(manifest.query).toBe("none");
     expect(manifest.addons).toEqual([
       "biome",
       "electrobun",
       "bun-test",
       "app-menu",
       "navigation-guard",
+      "tanstack-router",
     ]);
     expect(manifest.examples).toEqual(["rpc"]);
     expect(manifest.testing).toBe("bun");
     expect(manifest.appMenu).toBe("edit");
     expect(manifest.navigation).toBe("local-only");
+    expect(manifest.nativeUtils).toBe("none");
     expect(manifest.windowStyle).toBe("native");
     expect(manifest.buildEnv).toBe("dev");
     expect(manifest.buildTargets).toBe("current");
@@ -290,14 +652,101 @@ describe("generated minimal template", () => {
       hiddenInsetTitlebar: false,
       jsonSettings: false,
       localNavigationGuard: true,
+      nativeFileDialogs: false,
       react: true,
+      reactRouter: false,
       rpcExample: true,
       bunTest: true,
       settingsStore: false,
       shadcn: false,
       sqlite: false,
       tailwindcss: true,
+      tanstackQuery: false,
+      tanstackRouter: true,
     });
+  });
+
+  test("renders without renderer routing when requested", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      router: "none",
+    });
+    const packageJson = await readGenerated(target, "package.json");
+    const app = await readGenerated(target, "src/views/main/app.tsx");
+    const home = await readGenerated(target, "src/views/main/home.tsx");
+    const viteConfig = await readGenerated(target, "vite.config.ts");
+    const biome = await readGenerated(target, "biome.json");
+    const readme = await readGenerated(target, "README.md");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(packageJson).not.toContain('"@tanstack/react-router"');
+    expect(packageJson).not.toContain('"@tanstack/router-plugin"');
+    expect(packageJson).not.toContain('"react-router"');
+    expect(app).toContain('import { Home } from "./home"');
+    expect(app).toContain("const AppView = () => <Home />");
+    expect(home).toContain("No router");
+    expect(viteConfig).not.toContain("tanstackRouter");
+    expect(biome).not.toContain("routeTree.gen.ts");
+    expect(readme).toContain("- No router");
+    expect(
+      await Bun.file(join(target, "src/views/main/routeTree.gen.ts")).exists(),
+    ).toBe(false);
+    expect(
+      await Bun.file(join(target, "src/views/main/routes/index.tsx")).exists(),
+    ).toBe(false);
+    expect(manifest.router).toBe("none");
+    expect(manifest.addons).not.toContain("tanstack-router");
+    expect(manifest.features).toMatchObject({
+      reactRouter: false,
+      tanstackRouter: false,
+    });
+  });
+
+  test("renders React Router when requested", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      router: "react-router",
+    });
+    const packageJson = await readGenerated(target, "package.json");
+    const app = await readGenerated(target, "src/views/main/app.tsx");
+    const viteConfig = await readGenerated(target, "vite.config.ts");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(packageJson).toContain('"react-router"');
+    expect(packageJson).not.toContain('"@tanstack/react-router"');
+    expect(packageJson).not.toContain('"@tanstack/router-plugin"');
+    expect(app).toContain('from "react-router"');
+    expect(app).toContain("<HashRouter>");
+    expect(app).toContain('<Route element={<Home />} path="/" />');
+    expect(viteConfig).not.toContain("tanstackRouter");
+    expect(
+      await Bun.file(join(target, "src/views/main/routes/index.tsx")).exists(),
+    ).toBe(false);
+    expect(manifest.router).toBe("react-router");
+    expect(manifest.addons).toContain("react-router");
+    expect(manifest.features).toMatchObject({
+      reactRouter: true,
+      tanstackRouter: false,
+    });
+  });
+
+  test("renders TanStack Query when requested", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      query: "tanstack-query",
+    });
+    const packageJson = await readGenerated(target, "package.json");
+    const app = await readGenerated(target, "src/views/main/app.tsx");
+    const home = await readGenerated(target, "src/views/main/home.tsx");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(packageJson).toContain('"@tanstack/react-query"');
+    expect(app).toContain("QueryClientProvider");
+    expect(app).toContain("const queryClient = new QueryClient()");
+    expect(home).toContain("TanStack Query");
+    expect(manifest.query).toBe("tanstack-query");
+    expect(manifest.addons).toContain("tanstack-query");
+    expect(manifest.features.tanstackQuery).toBe(true);
   });
 
   test("omits demo RPC calls when examples are disabled", async () => {
@@ -305,15 +754,12 @@ describe("generated minimal template", () => {
       ...defaultStackOptions,
       examples: "none",
     });
-    const route = await readGenerated(
-      target,
-      "src/views/main/routes/index.tsx",
-    );
+    const home = await readGenerated(target, "src/views/main/home.tsx");
     const router = await readGenerated(target, "src/bun/rpc/router.ts");
     const readme = await readGenerated(target, "README.md");
 
-    expect(route).not.toContain("rpc.request.greet");
-    expect(route).not.toContain("rpc.send.logToBun");
+    expect(home).not.toContain("rpc.request.greet");
+    expect(home).not.toContain("rpc.send.logToBun");
     expect(router).not.toContain("greet");
     expect(router).not.toContain("logToBun");
     expect(readme).not.toContain("## RPC Example");
@@ -356,6 +802,7 @@ describe("generated minimal template", () => {
       "electrobun",
       "app-menu",
       "navigation-guard",
+      "tanstack-router",
     ]);
   });
 
@@ -397,10 +844,7 @@ describe("generated minimal template", () => {
     const packageJson = await readGenerated(target, "package.json");
     const index = await readGenerated(target, "src/bun/index.ts");
     const window = await readGenerated(target, "src/bun/window.ts");
-    const route = await readGenerated(
-      target,
-      "src/views/main/routes/index.tsx",
-    );
+    const home = await readGenerated(target, "src/views/main/home.tsx");
     const appStyles = await readGenerated(
       target,
       "src/views/main/styles/app.css",
@@ -413,12 +857,14 @@ describe("generated minimal template", () => {
     expect(index).toContain("setupApplicationMenu");
     expect(await Bun.file(join(target, "src/bun/menu.ts")).exists()).toBe(true);
     expect(window).toContain('titleBarStyle: "hiddenInset"');
-    expect(window).toContain('window.webview.on("will-navigate"');
-    expect(window).toContain("const getNavigationUrl");
-    expect(window).toContain("typeof data.detail");
-    expect(window).toContain("event.response = { allow: false }");
-    expect(window).not.toContain("navigationEvent.data.url");
-    expect(route).toContain("window-drag-bar");
+    expect(window).not.toContain("styleMask");
+    expect(window).toContain("window.webview.setNavigationRules");
+    expect(window).toContain('["^*", "views://*", "about:blank"]');
+    expect(window).toContain("CES_DEV_RELOAD");
+    expect(window).toContain("window.webview.loadURL(MAIN_VIEW_URL)");
+    expect(window).not.toContain("will-navigate");
+    expect(window).not.toContain("event.response = { allow: false }");
+    expect(home).toContain("window-drag-bar");
     expect(appStyles).toContain(".window-drag-bar");
     expect(manifest.buildEnv).toBe("stable");
     expect(manifest.buildTargets).toBe("all");
@@ -460,18 +906,41 @@ describe("generated minimal template", () => {
       examples: "none",
     });
     const window = await readGenerated(target, "src/bun/window.ts");
-    const route = await readGenerated(
-      target,
-      "src/views/main/routes/index.tsx",
-    );
+    const home = await readGenerated(target, "src/views/main/home.tsx");
     const manifest = await readGeneratedManifest(target);
 
     expect(window).not.toContain("mainViewRPC");
     expect(window).not.toContain("rpc:");
-    expect(route).not.toContain("../lib/rpc");
-    expect(route).toContain("Renderer ready");
+    expect(home).not.toContain("./lib/rpc");
+    expect(home).toContain("Renderer ready");
     expect(manifest.api).toBe("none");
     expect(manifest.features.electrobunRpc).toBe(false);
+  });
+
+  test("renders native file dialog utility option", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      nativeUtils: "file-dialogs",
+    });
+    const home = await readGenerated(target, "src/views/main/home.tsx");
+    const handlers = await readGenerated(target, "src/bun/rpc/handlers.ts");
+    const schema = await readGenerated(target, "src/shared/rpc/schema.ts");
+    const router = await readGenerated(target, "src/bun/rpc/router.ts");
+    const types = await readGenerated(target, "src/shared/types.ts");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(handlers).toContain('import { Utils } from "electrobun/bun"');
+    expect(handlers).toContain("Utils.openFileDialog");
+    expect(schema).toContain("openFileDialog");
+    expect(schema).toContain("FileDialogResult");
+    expect(router).toContain("openFileDialog");
+    expect(types).toContain("FileDialogResult");
+    expect(home).toContain("openNativeFileDialog");
+    expect(home).toContain("Native utility");
+    expect(home).toContain("File dialogs");
+    expect(manifest.nativeUtils).toBe("file-dialogs");
+    expect(manifest.addons).toContain("native-file-dialogs");
+    expect(manifest.features.nativeFileDialogs).toBe(true);
   });
 
   test("renders app lock auth option", async () => {
@@ -479,16 +948,13 @@ describe("generated minimal template", () => {
       ...defaultStackOptions,
       auth: "app-lock",
     });
-    const route = await readGenerated(
-      target,
-      "src/views/main/routes/index.tsx",
-    );
+    const home = await readGenerated(target, "src/views/main/home.tsx");
     const styles = await readGenerated(target, "src/views/main/styles/app.css");
     const manifest = await readGeneratedManifest(target);
 
-    expect(route).toContain("Local app lock");
-    expect(route).toContain("setIsUnlocked");
-    expect(styles).toContain(".auth-form");
+    expect(home).toContain("Local session");
+    expect(home).toContain("setIsUnlocked");
+    expect(styles).toContain(".lock-form");
     expect(manifest.auth).toBe("app-lock");
     expect(manifest.features.appLock).toBe(true);
   });
@@ -513,6 +979,83 @@ describe("generated minimal template", () => {
     expect(unseededClient).not.toContain("SQLite is ready.");
     expect(seededClient).toContain("SQLite is ready.");
     expect(manifest.dbSetup).toBe("seed");
+  });
+
+  test("renders VS Code-style JSON settings storage", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      settings: "json",
+    });
+    const store = await readGenerated(target, "src/bun/settings/store.ts");
+    const schema = await readGenerated(target, "src/shared/rpc/schema.ts");
+    const router = await readGenerated(target, "src/bun/rpc/router.ts");
+    const home = await readGenerated(target, "src/views/main/home.tsx");
+    const readme = await readGenerated(target, "README.md");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(store).toContain("settings.json");
+    expect(store).toContain('"app.theme"');
+    expect(store).toContain('storage: "json"');
+    expect(store).toContain("updateSetting");
+    expect(schema).toContain("SettingsStatus");
+    expect(schema).toContain("SettingValue");
+    expect(schema).toContain("getSettingsStatus");
+    expect(schema).toContain("updateSetting");
+    expect(router).toContain("getSettingsStatus");
+    expect(router).toContain("updateSetting");
+    expect(home).toContain("rpc.request.getSettingsStatus");
+    expect(home).toContain('saveSetting("app.theme", theme)');
+    expect(readme).toContain("VS Code-style JSON settings store");
+    expect(manifest.settings).toBe("json");
+    expect(manifest.addons).toContain("settings-json");
+    expect(manifest.features).toMatchObject({
+      databaseSettings: false,
+      jsonSettings: true,
+      settingsStore: true,
+    });
+  });
+
+  test("renders SQLite-backed settings storage", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      database: "sqlite",
+      settings: "database",
+    });
+    const store = await readGenerated(target, "src/bun/settings/store.ts");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(store).toContain("app_settings");
+    expect(store).toContain("databasePath");
+    expect(store).toContain('storage: "database"');
+    expect(store).toContain("on conflict(key) do update");
+    expect(manifest.settings).toBe("database");
+    expect(manifest.addons).toContain("settings-database");
+    expect(manifest.features).toMatchObject({
+      databaseSettings: true,
+      jsonSettings: false,
+      settingsStore: true,
+      sqlite: true,
+    });
+  });
+
+  test("renders Drizzle schema for database-backed settings", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      database: "sqlite",
+      orm: "drizzle",
+      settings: "database",
+    });
+    const schema = await readGenerated(target, "src/bun/db/schema.ts");
+    const store = await readGenerated(target, "src/bun/settings/store.ts");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(schema).toContain("appSettings");
+    expect(schema).toContain('sqliteTable("app_settings"');
+    expect(store).toContain('from "../db/client"');
+    expect(manifest.features).toMatchObject({
+      databaseSettings: true,
+      drizzle: true,
+    });
   });
 
   test("renders Turborepo addon", async () => {
@@ -541,6 +1084,7 @@ describe("generated minimal template", () => {
       ui: "shadcn",
     });
     const packageJson = await readGenerated(target, "package.json");
+    const tsconfig = await readGenerated(target, "tsconfig.json");
     const styles = await readGenerated(
       target,
       "src/views/main/styles/globals.css",
@@ -548,6 +1092,8 @@ describe("generated minimal template", () => {
 
     expect(await Bun.file(join(target, "components.json")).exists()).toBe(true);
     expect(packageJson).toContain('"shadcn"');
+    expect(tsconfig).toContain('"baseUrl": "."');
+    expect(tsconfig).toContain('"@/*": ["./src/*"]');
     expect(styles).toContain('@import "shadcn/tailwind.css"');
   });
 

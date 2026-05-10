@@ -1,41 +1,31 @@
 {{#if hasElectrobunRpc}}
 import { BrowserView } from "electrobun/bun";
 import type { MainViewRPC } from "../../shared/rpc/types";
-import {
-{{#if hasDatabase}}
-  getDatabaseStatus,
-{{/if}}
-{{#if hasRpcExample}}
-  greet,
-  logToBun,
-{{/if}}
-  getEnvironment,
-{{#if hasSettings}}
-  getSettingsStatus,
-  updateSetting,
-{{/if}}
-} from "./handlers";
+import * as handlers from "./handlers";
 
 export const mainViewRPC = BrowserView.defineRPC<MainViewRPC>({
   handlers: {
     messages: {
 {{#if hasRpcExample}}
-      logToBun,
+      logToBun: handlers.logToBun,
 {{/if}}
     },
     requests: {
 {{#if hasDatabase}}
-      getDatabaseStatus,
+      getDatabaseStatus: handlers.getDatabaseStatus,
 {{/if}}
-      getEnvironment,
+      getEnvironment: handlers.getEnvironment,
 {{#if hasSettings}}
-      getSettingsStatus,
+      getSettingsStatus: handlers.getSettingsStatus,
 {{/if}}
 {{#if hasRpcExample}}
-      greet,
+      greet: handlers.greet,
+{{/if}}
+{{#if hasNativeFileDialogs}}
+      openFileDialog: handlers.openFileDialog,
 {{/if}}
 {{#if hasSettings}}
-      updateSetting,
+      updateSetting: handlers.updateSetting,
 {{/if}}
     },
   },

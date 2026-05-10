@@ -1,125 +1,155 @@
 # Templates
 
-## minimal
+Templates live under `templates/<template-source>`.
 
-Status: implemented.
+The generator currently accepts these profiles:
 
-Includes:
+- `minimal`
+- `standard`
+- `full`
 
-- Electrobun
-- Bun
-- React
-- TanStack Router
-- Tailwind CSS or plain CSS
-- Strict TypeScript
-- Biome
-- Electrobun Edit menu through `--app-menu edit`
-- Local navigation guard through `--navigation local-only`
-- Native or hidden-inset window chrome through `--window-style`
-- Optional Bun test scaffold through `--testing bun`
-- Optional app lock through `--auth app-lock`
-- Optional JSON or database settings persistence through `--settings`
-- Optional Turborepo config through `--addons turborepo`
-- Typed Electrobun RPC bridge
-- Optional starter RPC example through `--examples rpc`
-- Root `ces.json` manifest with Better-T-Stack-style stack metadata and feature flags
+All profiles currently render from the same stable `templates/minimal` source. The selected profile is still recorded in `ces.json`, which leaves room for future profile-specific defaults without changing the manifest contract.
 
-Template source structure:
+## Render Order
+
+The scaffold process renders:
+
+1. `templates/minimal/base`
+2. Any selected option directories under `templates/minimal/options`
+3. `ces.json`
+
+Option directories can add files or override earlier files at the same output path.
+
+For example, `--database sqlite` adds a raw SQLite client, and `--orm drizzle` overlays the database client with a Drizzle-backed version plus schema/config files.
+
+## Source Structure
 
 ```txt
 templates/minimal/
   base/
-    **/*.hbs
+    package.json.hbs
+    README.md.hbs
+    vite.config.ts.hbs
+    electrobun.config.ts.hbs
+    src/
+      bun/
+      shared/
+      views/
   options/
-    app-menu/
-      edit/
-        **/*.hbs
     addons/
       turborepo/
-        **/*.hbs
+    app-menu/
+      edit/
     database/
       sqlite/
-        **/*.hbs
     orm/
       drizzle/
-        **/*.hbs
+    router/
+      tanstack-router/
     settings/
       json/
-        **/*.hbs
       database/
-        **/*.hbs
+    styling/
+      tailwindcss/
     testing/
       bun/
-        **/*.hbs
+    ui/
+      shadcn/
 ```
 
-`base` is always rendered first. Option directories are rendered afterward in stack order, so an option can add new files or override a base/lower-level option file at the same output path. For example, `database/sqlite` adds the raw SQLite client, and `orm/drizzle` overlays that client with a Drizzle-backed version plus `schema.ts` and `drizzle.config.ts`.
+## Base Template
 
-The default `--app-menu edit` adds an Electrobun `ApplicationMenu` with standard Edit roles so native copy, paste, undo, redo, and select-all shortcuts work. The default `--navigation local-only` blocks navigation away from bundled `views://` content. Passing `--window-style hidden-inset` adds Electrobun's `titleBarStyle: "hiddenInset"` window option plus a draggable header.
+`base` is always rendered. It contains the common Electrobun app:
 
-The default `--testing bun` adds `bun test`, includes `tests` in `tsconfig.json`, and renders a generated manifest smoke test. Passing `--testing none` omits the test script and test files.
+- Bun entrypoint and window creation.
+- React renderer entrypoint.
+- Shared constants and types.
+- Optional RPC, router, query, settings, and styling branches controlled by Handlebars data.
+- Generated README tailored to selected stack flags.
+- `package.json`, `tsconfig.json`, `biome.json`, Vite config, and Electrobun config.
 
-Passing `--api none` omits BrowserWindow RPC wiring. Passing `--auth app-lock` renders a local app-name lock screen. Passing `--db-setup seed` with SQLite inserts starter metadata when the database is empty. Passing `--addons turborepo` adds `turbo.json`, a `check` script, and the Turbo dev dependency.
+Because `base` contains conditional branches, not every option needs a separate overlay directory.
 
-Passing `--settings json` adds a Bun-side settings store backed by `data/settings.json`, with VS Code-style dotted keys such as `app.theme`. Passing `--settings database` stores the same key/value settings in SQLite and requires `--database sqlite`. Both settings modes expose `getSettingsStatus` and `updateSetting` through the typed Electrobun RPC bridge.
+## Option Directories
 
-The default `--examples rpc` renders a greeting/logging RPC demo in the route, handlers, shared RPC schema, and generated README. Passing `--examples none` keeps the typed RPC bridge and environment request but omits that demo surface.
+### `addons/turborepo`
 
-Generated structure:
+Adds `turbo.json` and enables Turbo scripts/dependency through the base `package.json` template.
 
-```txt
-ces.json
-tests/
-  manifest.test.ts
-src/
-  bun/
-    index.ts
-    menu.ts
-    window.ts
-    rpc/
-      handlers.ts
-      router.ts
-    settings/
-      store.ts
-  views/
-    main/
-      index.html
-      main.tsx
-      app.tsx
-      routeTree.gen.ts
-      routes/
-        __root.tsx
-        index.tsx
-      lib/
-        rpc.ts
-      styles/
-        globals.css
-  shared/
-    constants.ts
-    types.ts
-    rpc/
-      schema.ts
-      types.ts
-```
+### `app-menu/edit`
 
-## standard
+Adds `src/bun/menu.ts`. The base Bun entrypoint calls it when `--app-menu edit` is selected.
 
-Status: implemented profile.
+### `database/sqlite`
 
-Planned additions:
+Adds a Bun SQLite client and database status surface.
 
-- shadcn-style UI components
-- Zustand
-- TanStack Query
-- App settings store
-- Custom titlebar
+### `orm/drizzle`
 
-## full
+Adds Drizzle files and overlays the SQLite client when Drizzle is selected.
 
-Status: implemented profile.
+### `router/tanstack-router`
 
-Planned additions:
+Adds TanStack Router route files and the generated route tree placeholder.
 
-- Broader app examples on top of the existing SQLite and Drizzle options
-- More complete database workflows
-- System tray if it maps cleanly to Electrobun APIs
+React Router and no-router modes are handled inside the base renderer templates.
+
+### `settings/json`
+
+Adds a settings store backed by `data/settings.json`.
+
+### `settings/database`
+
+Adds a settings store backed by SQLite.
+
+### `styling/tailwindcss`
+
+Adds Tailwind-specific style overlays.
+
+Plain CSS is handled by the base style templates.
+
+### `testing/bun`
+
+Adds `tests/manifest.test.ts`. The base package and TypeScript templates add the script and include path when testing is enabled.
+
+### `ui/shadcn`
+
+Adds `components.json` and enables shadcn-related config branches in the base templates.
+
+## Template Data
+
+Template data is built in `src/scaffold.ts`. Important booleans include:
+
+- `hasElectrobunRpc`
+- `hasRpcExample`
+- `hasTanstackRouter`
+- `hasReactRouter`
+- `hasTanstackQuery`
+- `hasTailwind`
+- `hasShadcn`
+- `hasDatabase`
+- `hasDrizzle`
+- `hasJsonSettings`
+- `hasDatabaseSettings`
+- `hasNativeFileDialogs`
+- `hasAppMenu`
+- `hasNavigationGuard`
+- `hasHiddenInsetTitlebar`
+- `hasTesting`
+- `hasTurborepo`
+
+Prefer adding a clear boolean in `templateData` over duplicating complex option checks across many `.hbs` files.
+
+## Adding A New Option
+
+When adding a scaffold option:
+
+1. Add the option type, defaults, choices, flag mapping, and validation in `src/options.ts`.
+2. Add prompt labels in `src/prompts.ts` if the option is interactive.
+3. Add manifest fields or feature booleans in `src/manifest.ts`.
+4. Add template data in `src/scaffold.ts`.
+5. Add a new option directory only when the option needs new files or an overlay.
+6. Update tests in `tests/cli.test.ts`.
+7. Update `README.md`, `docs/cli.md`, `docs/options.md`, `docs/generated-project.md`, `docs/manifest.md`, and `docs/llm.txt`.
+
+Keep option overlays narrow. A template directory should own a feature, not a broad refactor of unrelated base files.

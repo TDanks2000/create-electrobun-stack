@@ -1,5 +1,7 @@
+{{#if hasNativeFileDialogs}}import { Utils } from "electrobun/bun";
+{{/if}}
 import { APP_NAME } from "../../shared/constants";
-import type { AppEnvironment } from "../../shared/types";
+import type { AppEnvironment{{#if hasNativeFileDialogs}}, FileDialogResult{{/if}} } from "../../shared/types";
 {{#if hasDatabase}}import { getDatabaseStatus } from "../db/client";
 {{/if}}
 {{#if hasSettings}}import { getSettingsStatus, updateSetting } from "../settings/store";
@@ -12,6 +14,21 @@ export const getEnvironment = (): AppEnvironment => ({
   platform: process.platform,
   startedAt,
 });
+{{#if hasNativeFileDialogs}}
+
+export const openFileDialog = async (): Promise<FileDialogResult> => {
+  const paths =
+    (await Utils.openFileDialog({
+      allowedFileTypes: "*",
+      allowsMultipleSelection: false,
+      canChooseDirectory: true,
+      canChooseFiles: true,
+      startingFolder: Utils.paths.home,
+    })) ?? [];
+
+  return { paths };
+};
+{{/if}}
 {{#if hasRpcExample}}
 
 export const greet = ({ name }: { name: string }): { greeting: string } => ({
@@ -23,10 +40,13 @@ export const logToBun = ({ message }: { message: string }): void => {
 };
 {{/if}}
 {{#if hasDatabase}}
-
+{{#if hasSettings}}
+export { getDatabaseStatus, getSettingsStatus, updateSetting };
+{{else}}
 export { getDatabaseStatus };
 {{/if}}
+{{else}}
 {{#if hasSettings}}
-
 export { getSettingsStatus, updateSetting };
+{{/if}}
 {{/if}}

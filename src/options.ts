@@ -1,100 +1,149 @@
 import { formatList } from "./utils/format";
 
-export type StackOptions = {
+type ScaffoldStackOptions = {
   addons: "none" | "turborepo";
-  appMenu: "edit" | "none";
-  api: "electrobun-rpc" | "none";
   auth: "none" | "app-lock";
-  buildEnv: "dev" | "canary" | "stable";
-  buildTargets: "current" | "all";
   database: "none" | "sqlite";
   dbSetup: "none" | "seed";
   examples: "rpc" | "none";
   frontend: "react";
   orm: "none" | "drizzle";
   packageManager: "bun" | "npm" | "pnpm" | "yarn";
+  query: "none" | "tanstack-query";
+  router: "none" | "tanstack-router" | "react-router";
   runtime: "bun";
   settings: "none" | "json" | "database";
   styling: "css" | "tailwindcss";
   testing: "bun" | "none";
   ui: "none" | "shadcn";
+};
+
+export type ElectrobunFeatureOptions = {
+  api: "electrobun-rpc" | "none";
+  appMenu: "edit" | "none";
+  buildEnv: "dev" | "canary" | "stable";
+  buildTargets: "current" | "all";
   navigation: "local-only" | "none";
+  nativeUtils: "none" | "file-dialogs";
   windowStyle: "native" | "hidden-inset";
 };
+
+export type StackOptions = ScaffoldStackOptions & ElectrobunFeatureOptions;
 
 export type UnsupportedStackOption = {
   flag: string;
   note: string;
 };
 
-export const defaultStackOptions: StackOptions = {
-  addons: "none",
-  appMenu: "edit",
+export const defaultElectrobunFeatureOptions: ElectrobunFeatureOptions = {
   api: "electrobun-rpc",
-  auth: "none",
+  appMenu: "edit",
   buildEnv: "dev",
   buildTargets: "current",
+  navigation: "local-only",
+  nativeUtils: "none",
+  windowStyle: "native",
+};
+
+const defaultScaffoldStackOptions: ScaffoldStackOptions = {
+  addons: "none",
+  auth: "none",
   database: "none",
   dbSetup: "none",
   examples: "rpc",
   frontend: "react",
   orm: "none",
   packageManager: "bun",
+  query: "none",
+  router: "tanstack-router",
   runtime: "bun",
   settings: "none",
   styling: "tailwindcss",
   testing: "bun",
   ui: "none",
-  navigation: "local-only",
-  windowStyle: "native",
 };
 
-export const stackOptionChoices = {
+export const defaultStackOptions: StackOptions = {
+  ...defaultScaffoldStackOptions,
+  ...defaultElectrobunFeatureOptions,
+};
+
+const scaffoldStackOptionChoices = {
   addons: ["none", "turborepo"],
-  appMenu: ["edit", "none"],
-  api: ["electrobun-rpc", "none"],
   auth: ["none", "app-lock"],
-  buildEnv: ["dev", "canary", "stable"],
-  buildTargets: ["current", "all"],
   database: ["none", "sqlite"],
   dbSetup: ["none", "seed"],
   examples: ["rpc", "none"],
   frontend: ["react"],
   orm: ["none", "drizzle"],
   packageManager: ["bun", "npm", "pnpm", "yarn"],
+  query: ["none", "tanstack-query"],
+  router: ["tanstack-router", "react-router", "none"],
   runtime: ["bun"],
   settings: ["none", "json", "database"],
   styling: ["tailwindcss", "css"],
   testing: ["bun", "none"],
   ui: ["none", "shadcn"],
+} as const satisfies {
+  [Key in keyof ScaffoldStackOptions]: Readonly<
+    Array<ScaffoldStackOptions[Key]>
+  >;
+};
+
+const electrobunFeatureOptionChoices = {
+  api: ["electrobun-rpc", "none"],
+  appMenu: ["edit", "none"],
+  buildEnv: ["dev", "canary", "stable"],
+  buildTargets: ["current", "all"],
   navigation: ["local-only", "none"],
+  nativeUtils: ["none", "file-dialogs"],
   windowStyle: ["native", "hidden-inset"],
+} as const satisfies {
+  [Key in keyof ElectrobunFeatureOptions]: Readonly<
+    Array<ElectrobunFeatureOptions[Key]>
+  >;
+};
+
+export const stackOptionChoices = {
+  ...scaffoldStackOptionChoices,
+  ...electrobunFeatureOptionChoices,
 } as const satisfies {
   [Key in keyof StackOptions]: Readonly<Array<StackOptions[Key]>>;
 };
 
 export type StackOptionName = keyof StackOptions;
 
-export const stackFlagNames = {
+const scaffoldStackFlagNames = {
   addons: "addons",
-  "app-menu": "appMenu",
-  api: "api",
   auth: "auth",
-  "build-env": "buildEnv",
-  "build-targets": "buildTargets",
   database: "database",
   "db-setup": "dbSetup",
   examples: "examples",
   frontend: "frontend",
   orm: "orm",
   "package-manager": "packageManager",
+  query: "query",
+  router: "router",
   runtime: "runtime",
   settings: "settings",
   styling: "styling",
   testing: "testing",
   ui: "ui",
+} as const satisfies Record<string, keyof ScaffoldStackOptions>;
+
+const electrobunFeatureFlagNames = {
+  api: "api",
+  "app-menu": "appMenu",
+  "build-env": "buildEnv",
+  "build-targets": "buildTargets",
   navigation: "navigation",
+  "native-utils": "nativeUtils",
   "window-style": "windowStyle",
+} as const satisfies Record<string, keyof ElectrobunFeatureOptions>;
+
+export const stackFlagNames = {
+  ...scaffoldStackFlagNames,
+  ...electrobunFeatureFlagNames,
 } as const satisfies Record<string, StackOptionName>;
 
 export type StackFlagName = keyof typeof stackFlagNames;
@@ -166,6 +215,12 @@ export const setStackOption = (
     case "packageManager":
       options.packageManager = parseStackOptionValue(optionName, value);
       return;
+    case "query":
+      options.query = parseStackOptionValue(optionName, value);
+      return;
+    case "router":
+      options.router = parseStackOptionValue(optionName, value);
+      return;
     case "runtime":
       options.runtime = parseStackOptionValue(optionName, value);
       return;
@@ -183,6 +238,9 @@ export const setStackOption = (
       return;
     case "navigation":
       options.navigation = parseStackOptionValue(optionName, value);
+      return;
+    case "nativeUtils":
+      options.nativeUtils = parseStackOptionValue(optionName, value);
       return;
     case "windowStyle":
       options.windowStyle = parseStackOptionValue(optionName, value);
@@ -223,6 +281,13 @@ export const getUnsupportedStackOptions = (
     });
   }
 
+  if (options.nativeUtils !== "none" && options.api !== "electrobun-rpc") {
+    unsupported.push({
+      flag: `--native-utils ${options.nativeUtils} --api ${options.api}`,
+      note: "Native utility examples require the native Electrobun RPC API.",
+    });
+  }
+
   if (options.settings === "database" && options.database !== "sqlite") {
     unsupported.push({
       flag: `--database ${options.database} --settings ${options.settings}`,
@@ -256,11 +321,14 @@ export const validateStackOptions = (options: StackOptions): void => {
 export const formatStackOptions = (options: StackOptions): Array<string> => {
   return [
     `frontend=${options.frontend}`,
+    `router=${options.router}`,
+    `query=${options.query}`,
     `runtime=${options.runtime}`,
     `buildEnv=${options.buildEnv}`,
     `buildTargets=${options.buildTargets}`,
     `api=${options.api}`,
     `navigation=${options.navigation}`,
+    `nativeUtils=${options.nativeUtils}`,
     `windowStyle=${options.windowStyle}`,
     `styling=${options.styling}`,
     `ui=${options.ui}`,

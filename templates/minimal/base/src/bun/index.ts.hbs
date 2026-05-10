@@ -1,10 +1,6 @@
-{{#if hasAppMenu}}
-import { setupApplicationMenu } from "./menu";
-{{/if}}
-import { createMainWindow } from "./window";
+{{#if hasAppMenu}}import { setupApplicationMenu } from "./menu";
+{{/if}}import { createMainWindow } from "./window";
 
-{{#if hasAppMenu}}
-setupApplicationMenu();
-{{/if}}
+{{#if hasAppMenu}}setupApplicationMenu();
 
-createMainWindow();
+{{/if}}createMainWindow();

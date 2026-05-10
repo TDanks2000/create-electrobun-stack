@@ -16,13 +16,16 @@ export type CesFeatureFlags = {
   databaseSettings: boolean;
   hiddenInsetTitlebar: boolean;
   jsonSettings: boolean;
+  nativeFileDialogs: boolean;
   localNavigationGuard: boolean;
   plainCss: boolean;
   react: boolean;
+  reactRouter: boolean;
   rpcExample: boolean;
   shadcn: boolean;
   settingsStore: boolean;
   sqlite: boolean;
+  tanstackQuery: boolean;
   tailwindcss: boolean;
   tanstackRouter: boolean;
   turborepo: boolean;
@@ -47,11 +50,14 @@ export type CesManifest = {
   frontend: Array<string>;
   git: boolean;
   install: boolean;
+  nativeUtils: StackOptions["nativeUtils"];
   orm: StackOptions["orm"];
   packageManager: StackOptions["packageManager"];
   packageName: string;
   projectName: string;
+  query: StackOptions["query"];
   reproducibleCommand: string;
+  router: StackOptions["router"];
   runtime: StackOptions["runtime"];
   settings: StackOptions["settings"];
   styling: StackOptions["styling"];
@@ -65,6 +71,7 @@ export type CesManifest = {
 
 type CesManifestOptions = {
   appIdentifier: string;
+  createdAt?: string;
   generatorVersion: string;
   git: boolean;
   install: boolean;
@@ -87,15 +94,18 @@ const createFeatureFlags = (stack: StackOptions): CesFeatureFlags => ({
   databaseSettings: stack.settings === "database",
   hiddenInsetTitlebar: stack.windowStyle === "hidden-inset",
   jsonSettings: stack.settings === "json",
+  nativeFileDialogs: stack.nativeUtils === "file-dialogs",
   localNavigationGuard: stack.navigation === "local-only",
   plainCss: stack.styling === "css",
   react: stack.frontend === "react",
+  reactRouter: stack.router === "react-router",
   rpcExample: stack.examples === "rpc",
   shadcn: stack.ui === "shadcn",
   settingsStore: stack.settings !== "none",
   sqlite: stack.database === "sqlite",
+  tanstackQuery: stack.query === "tanstack-query",
   tailwindcss: stack.styling === "tailwindcss",
-  tanstackRouter: stack.frontend === "react",
+  tanstackRouter: stack.router === "tanstack-router",
   turborepo: stack.addons === "turborepo",
   typescript: true,
   vite: stack.frontend === "react",
@@ -126,6 +136,22 @@ const createAddonsList = (stack: StackOptions): Array<string> => {
     addons.push("navigation-guard");
   }
 
+  if (stack.router === "tanstack-router") {
+    addons.push("tanstack-router");
+  }
+
+  if (stack.router === "react-router") {
+    addons.push("react-router");
+  }
+
+  if (stack.query === "tanstack-query") {
+    addons.push("tanstack-query");
+  }
+
+  if (stack.nativeUtils === "file-dialogs") {
+    addons.push("native-file-dialogs");
+  }
+
   if (stack.settings === "json") {
     addons.push("settings-json");
   }
@@ -153,6 +179,10 @@ const createReproducibleCommand = (options: CesManifestOptions): string => {
     options.template,
     "--frontend",
     options.stack.frontend,
+    "--router",
+    options.stack.router,
+    "--query",
+    options.stack.query,
     "--runtime",
     options.stack.runtime,
     "--build-env",
@@ -163,6 +193,8 @@ const createReproducibleCommand = (options: CesManifestOptions): string => {
     options.stack.api,
     "--navigation",
     options.stack.navigation,
+    "--native-utils",
+    options.stack.nativeUtils,
     "--window-style",
     options.stack.windowStyle,
     "--styling",
@@ -203,7 +235,7 @@ export const createCesManifest = (
 ): CesManifest => ({
   $schema: createSchemaUrl(options.generatorVersion),
   version: options.generatorVersion,
-  createdAt: new Date().toISOString(),
+  createdAt: options.createdAt ?? new Date().toISOString(),
   reproducibleCommand: createReproducibleCommand(options),
   projectName: options.projectName,
   packageName: options.packageName,
@@ -211,6 +243,8 @@ export const createCesManifest = (
   template: options.template,
   database: options.stack.database,
   orm: options.stack.orm,
+  query: options.stack.query,
+  router: options.stack.router,
   runtime: options.stack.runtime,
   buildEnv: options.stack.buildEnv,
   buildTargets: options.stack.buildTargets,
@@ -230,8 +264,49 @@ export const createCesManifest = (
   testing: options.stack.testing,
   git: options.git,
   install: options.install,
+  nativeUtils: options.stack.nativeUtils,
   features: createFeatureFlags(options.stack),
 });
 
 export const serializeCesManifest = (manifest: CesManifest): string =>
   `${collapseStringArrays(JSON.stringify(manifest, null, 2))}\n`;
+
+export const stackOptionsFromCesManifest = (
+  manifest: CesManifest,
+): StackOptions => ({
+  addons:
+    manifest.addons.includes("turborepo") || manifest.features.turborepo
+      ? "turborepo"
+      : "none",
+  appMenu: manifest.appMenu,
+  api: manifest.api,
+  auth: manifest.auth,
+  buildEnv: manifest.buildEnv,
+  buildTargets: manifest.buildTargets,
+  database: manifest.database,
+  dbSetup: manifest.dbSetup,
+  examples: manifest.examples.includes("rpc") ? "rpc" : "none",
+  frontend: "react",
+  orm: manifest.orm,
+  packageManager: manifest.packageManager,
+  query:
+    manifest.query ??
+    (manifest.features.tanstackQuery ? "tanstack-query" : "none"),
+  router:
+    manifest.router ??
+    (manifest.features.tanstackRouter
+      ? "tanstack-router"
+      : manifest.features.reactRouter
+        ? "react-router"
+        : "none"),
+  runtime: "bun",
+  settings: manifest.settings,
+  styling: manifest.styling,
+  testing: manifest.testing,
+  ui: manifest.ui,
+  navigation: manifest.navigation,
+  nativeUtils:
+    manifest.nativeUtils ??
+    (manifest.features.nativeFileDialogs ? "file-dialogs" : "none"),
+  windowStyle: manifest.windowStyle,
+});

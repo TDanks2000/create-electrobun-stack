@@ -3,6 +3,12 @@ export type AppEnvironment = {
   platform: NodeJS.Platform;
   startedAt: string;
 };
+{{#if hasNativeFileDialogs}}
+
+export type FileDialogResult = {
+  paths: Array<string>;
+};
+{{/if}}
 {{#if hasDatabase}}
 
 export type DatabaseStatus = {

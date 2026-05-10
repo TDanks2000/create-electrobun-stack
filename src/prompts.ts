@@ -135,21 +135,11 @@ const promptExamples = async (
   options.examples = handleCancel(answer).includes("rpc") ? "rpc" : "none";
 };
 
-export const promptStackOptions = async (
-  initialOptions: StackOptions,
+const promptElectrobunFeatures = async (
+  options: StackOptions,
   lockedOptions: ReadonlySet<StackOptionName>,
-): Promise<StackOptions> => {
-  const options: StackOptions = { ...initialOptions };
-
-  await promptStackSelect(options, lockedOptions, "frontend", "Frontend", [
-    {
-      value: "react",
-      label: "React WebView",
-      hint: "generates the renderer view with React",
-    },
-  ]);
-
-  await promptStackSelect(options, lockedOptions, "api", "API layer", [
+): Promise<void> => {
+  await promptStackSelect(options, lockedOptions, "api", "Native bridge", [
     {
       value: "electrobun-rpc",
       label: "Electrobun RPC",
@@ -165,18 +155,41 @@ export const promptStackOptions = async (
   await promptStackSelect(
     options,
     lockedOptions,
+    "nativeUtils",
+    "Desktop utilities",
+    [
+      {
+        value: "none",
+        label: "None",
+        hint: "does not add native utility examples",
+      },
+      {
+        value: "file-dialogs",
+        label: "File dialogs",
+        hint:
+          options.api === "electrobun-rpc"
+            ? "adds a typed open-file dialog request"
+            : "requires Electrobun RPC",
+        disabled: options.api !== "electrobun-rpc",
+      },
+    ],
+  );
+
+  await promptStackSelect(
+    options,
+    lockedOptions,
     "navigation",
-    "Navigation guard",
+    "Navigation rules",
     [
       {
         value: "local-only",
-        label: "Local views only",
-        hint: "blocks navigation outside bundled views",
+        label: "Bundled views only",
+        hint: "blocks navigation outside app views",
       },
       {
         value: "none",
         label: "None",
-        hint: "does not install a navigation guard",
+        hint: "does not install native navigation rules",
       },
     ],
   );
@@ -185,39 +198,118 @@ export const promptStackOptions = async (
     options,
     lockedOptions,
     "windowStyle",
-    "Window style",
+    "Window chrome",
     [
       {
         value: "native",
-        label: "Native chrome",
-        hint: "uses the default OS titlebar",
+        label: "Native titlebar",
+        hint: "uses the default OS window chrome",
       },
       {
         value: "hidden-inset",
-        label: "Hidden inset titlebar",
+        label: "Inset titlebar",
         hint: "adds hiddenInset titlebar and draggable header",
       },
     ],
   );
 
+  await promptStackSelect(options, lockedOptions, "appMenu", "Native menu", [
+    {
+      value: "edit",
+      label: "Edit roles",
+      hint: "adds native copy, paste, and undo shortcuts",
+    },
+    {
+      value: "none",
+      label: "None",
+      hint: "omits the application menu scaffold",
+    },
+  ]);
+
+  await promptStackSelect(options, lockedOptions, "buildEnv", "Build channel", [
+    {
+      value: "dev",
+      label: "Development",
+      hint: "passes --env dev to electrobun build",
+    },
+    {
+      value: "canary",
+      label: "Canary",
+      hint: "passes --env canary to electrobun build",
+    },
+    {
+      value: "stable",
+      label: "Stable",
+      hint: "passes --env stable to electrobun build",
+    },
+  ]);
+
   await promptStackSelect(
     options,
     lockedOptions,
-    "appMenu",
-    "Application menu",
+    "buildTargets",
+    "Build targets",
     [
       {
-        value: "edit",
-        label: "Edit menu",
-        hint: "adds native copy, paste, and undo roles",
+        value: "current",
+        label: "Current platform",
+        hint: "builds only for this OS",
       },
       {
-        value: "none",
-        label: "None",
-        hint: "omits the application menu scaffold",
+        value: "all",
+        label: "All platforms",
+        hint: "builds every configured target",
       },
     ],
   );
+};
+
+export const promptStackOptions = async (
+  initialOptions: StackOptions,
+  lockedOptions: ReadonlySet<StackOptionName>,
+): Promise<StackOptions> => {
+  const options: StackOptions = { ...initialOptions };
+
+  await promptStackSelect(options, lockedOptions, "frontend", "Frontend", [
+    {
+      value: "react",
+      label: "React WebView",
+      hint: "generates the renderer view with React",
+    },
+  ]);
+
+  await promptStackSelect(options, lockedOptions, "router", "Router", [
+    {
+      value: "tanstack-router",
+      label: "TanStack Router",
+      hint: "adds file-based routes with the TanStack Vite plugin",
+    },
+    {
+      value: "react-router",
+      label: "React Router",
+      hint: "adds React Router with hash history",
+    },
+    {
+      value: "none",
+      label: "None",
+      hint: "renders the starter view without a router",
+    },
+  ]);
+
+  await promptStackSelect(options, lockedOptions, "query", "Data fetching", [
+    {
+      value: "none",
+      label: "None",
+      hint: "does not add a server-state client",
+    },
+    {
+      value: "tanstack-query",
+      label: "TanStack Query",
+      hint: "adds QueryClientProvider for async state",
+    },
+  ]);
+
+  await promptElectrobunFeatures(options, lockedOptions);
 
   await promptStackSelect(options, lockedOptions, "styling", "Styling", [
     {
@@ -303,7 +395,8 @@ export const promptStackOptions = async (
           : options.database === "sqlite"
             ? "stores settings in SQLite"
             : "requires SQLite database",
-      disabled: options.api !== "electrobun-rpc" || options.database !== "sqlite",
+      disabled:
+        options.api !== "electrobun-rpc" || options.database !== "sqlite",
     },
   ]);
 
@@ -375,43 +468,6 @@ export const promptStackOptions = async (
         value: "yarn",
         label: "Yarn",
         hint: "uses yarn install and yarn scripts",
-      },
-    ],
-  );
-
-  await promptStackSelect(options, lockedOptions, "buildEnv", "Build env", [
-    {
-      value: "dev",
-      label: "Development",
-      hint: "builds with electrobun --env dev",
-    },
-    {
-      value: "canary",
-      label: "Canary",
-      hint: "builds with electrobun --env canary",
-    },
-    {
-      value: "stable",
-      label: "Stable",
-      hint: "builds with electrobun --env stable",
-    },
-  ]);
-
-  await promptStackSelect(
-    options,
-    lockedOptions,
-    "buildTargets",
-    "Build targets",
-    [
-      {
-        value: "current",
-        label: "Current platform",
-        hint: "builds only for this OS",
-      },
-      {
-        value: "all",
-        label: "All platforms",
-        hint: "builds every configured target",
       },
     ],
   );

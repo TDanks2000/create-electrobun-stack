@@ -1,6 +1,10 @@
 import { readdir, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { createCesManifest, serializeCesManifest } from "./manifest";
+import {
+  type CesManifest,
+  createCesManifest,
+  serializeCesManifest,
+} from "./manifest";
 import type { StackOptions } from "./options";
 import { getPackageVersion } from "./package-info";
 import {
@@ -23,6 +27,13 @@ export type ScaffoldOptions = {
   template: TemplateName;
 };
 
+export type AddToProjectOptions = {
+  install?: boolean;
+  manifest: CesManifest;
+  stack: StackOptions;
+  targetDirectory: string;
+};
+
 const templateRoot = join(
   dirname(new URL(import.meta.url).pathname),
   "..",
@@ -41,6 +52,17 @@ const createDisplayName = (projectName: string): string =>
     .filter(Boolean)
     .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
     .join(" ");
+
+const createRouterDisplayName = (stack: StackOptions): string => {
+  switch (stack.router) {
+    case "react-router":
+      return "React Router";
+    case "tanstack-router":
+      return "TanStack Router";
+    case "none":
+      return "No router";
+  }
+};
 
 const pathExists = async (path: string): Promise<boolean> => {
   try {
@@ -98,14 +120,26 @@ const templateData = (options: ScaffoldOptions): Record<string, unknown> => ({
   hasShadcn: options.stack.ui === "shadcn",
   hasDatabaseSettings: options.stack.settings === "database",
   hasJsonSettings: options.stack.settings === "json",
+  hasNativeFileDialogs: options.stack.nativeUtils === "file-dialogs",
   hasSettings: options.stack.settings !== "none",
+  hasReactRouter: options.stack.router === "react-router",
   hasTailwind: options.stack.styling === "tailwindcss",
+  hasTanstackQuery: options.stack.query === "tanstack-query",
+  hasTanstackRouter: options.stack.router === "tanstack-router",
   hasTesting: options.stack.testing === "bun",
   hasTurborepo: options.stack.addons === "turborepo",
+  hasRouter: options.stack.router !== "none",
+  homeFilePath:
+    options.stack.router === "tanstack-router"
+      ? "src/views/main/routes/index.tsx"
+      : "src/views/main/home.tsx",
   packageManagerSpec: getPackageManagerSpec(options.stack.packageManager),
+  routerDisplayName: createRouterDisplayName(options.stack),
   commands: {
     build: getRunCommand(options.stack.packageManager, "build"),
     check: getRunCommand(options.stack.packageManager, "check"),
+    dbGenerate: getRunCommand(options.stack.packageManager, "db:generate"),
+    dbStudio: getRunCommand(options.stack.packageManager, "db:studio"),
     dev: getRunCommand(options.stack.packageManager, "dev"),
     format: getRunCommand(options.stack.packageManager, "format"),
     install: getInstallCommand(options.stack.packageManager),
@@ -140,6 +174,12 @@ const optionTemplateDirectories = (
 
   if (stack.ui === "shadcn") {
     directories.push(join(templateDirectory, "options", "ui", "shadcn"));
+  }
+
+  if (stack.router === "tanstack-router") {
+    directories.push(
+      join(templateDirectory, "options", "router", "tanstack-router"),
+    );
   }
 
   if (stack.settings === "json") {
@@ -221,6 +261,73 @@ export const scaffoldProject = async (
         projectName: options.projectName,
         stack: options.stack,
         template: options.template,
+      }),
+    ),
+  );
+};
+
+export const addToProject = async (
+  options: AddToProjectOptions,
+): Promise<void> => {
+  const sourceTemplate = templateSources[options.manifest.template];
+  const templateDirectory = join(templateRoot, sourceTemplate);
+  const baseDirectory = join(templateDirectory, "base");
+  const sourceExists = await pathExists(baseDirectory);
+
+  if (!sourceExists) {
+    throw new Error(`Template source is missing: ${options.manifest.template}`);
+  }
+
+  const replacements = {
+    __APP_IDENTIFIER__: options.manifest.appIdentifier,
+    __APP_NAME__: createDisplayName(options.manifest.projectName),
+    __PACKAGE_NAME__: options.manifest.packageName,
+    __PROJECT_NAME__: options.manifest.projectName,
+  };
+  const data = templateData({
+    appIdentifier: options.manifest.appIdentifier,
+    git: options.manifest.git,
+    install: options.install ?? options.manifest.install,
+    packageName: options.manifest.packageName,
+    projectName: options.manifest.projectName,
+    stack: options.stack,
+    targetDirectory: options.targetDirectory,
+    template: options.manifest.template,
+  });
+  const generatorVersion = await getPackageVersion();
+
+  await copyTemplate({
+    replacements,
+    sourceDirectory: baseDirectory,
+    targetDirectory: options.targetDirectory,
+    templateData: data,
+  });
+
+  for (const optionDirectory of optionTemplateDirectories(
+    templateDirectory,
+    options.stack,
+  )) {
+    await copyTemplate({
+      replacements,
+      sourceDirectory: optionDirectory,
+      targetDirectory: options.targetDirectory,
+      templateData: data,
+    });
+  }
+
+  await Bun.write(
+    join(options.targetDirectory, "ces.json"),
+    serializeCesManifest(
+      createCesManifest({
+        appIdentifier: options.manifest.appIdentifier,
+        createdAt: options.manifest.createdAt,
+        generatorVersion,
+        git: options.manifest.git,
+        install: options.manifest.install,
+        packageName: options.manifest.packageName,
+        projectName: options.manifest.projectName,
+        stack: options.stack,
+        template: options.manifest.template,
       }),
     ),
   );

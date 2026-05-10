@@ -2,6 +2,9 @@ import { fileURLToPath, URL } from "node:url";
 {{#if hasTailwind}}
 import tailwindcss from "@tailwindcss/vite";
 {{/if}}
+{{#if hasTanstackRouter}}
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
+{{/if}}
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
@@ -11,7 +14,28 @@ export default defineConfig({
     emptyOutDir: true,
     outDir: "../../../.electrobun/views/main",
   },
-  plugins: [{{#if hasTailwind}}tailwindcss(), {{/if}}react()],
+{{#if hasTanstackRouter}}
+  plugins: [
+    tanstackRouter({
+      autoCodeSplitting: true,
+      generatedRouteTree: "./routeTree.gen.ts",
+      quoteStyle: "double",
+      routesDirectory: "./routes",
+      semicolons: true,
+      target: "react",
+    }),
+{{#if hasTailwind}}
+    tailwindcss(),
+{{/if}}
+    react(),
+  ],
+{{else}}
+{{#if hasTailwind}}
+  plugins: [tailwindcss(), react()],
+{{else}}
+  plugins: [react()],
+{{/if}}
+{{/if}}
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

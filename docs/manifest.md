@@ -1,0 +1,136 @@
+# Manifest Reference
+
+Every generated project includes `ces.json` in the project root.
+
+The manifest is used for:
+
+- Reproducing the scaffold command.
+- Showing humans which stack choices were selected.
+- Letting `create-electrobun-stack add` expand the project later.
+- Giving tools and LLMs a structured source of truth for generated features.
+
+The schema is published in this repository at [ces.schema.json](./ces.schema.json). Generated manifests point `$schema` at the package version on unpkg.
+
+## Example
+
+```json
+{
+  "$schema": "https://unpkg.com/create-electrobun-stack@0.1.1/docs/ces.schema.json",
+  "version": "0.1.1",
+  "createdAt": "2026-05-10T00:00:00.000Z",
+  "reproducibleCommand": "bunx create-electrobun-stack@0.1.1 my-app --template minimal ...",
+  "projectName": "my-app",
+  "packageName": "my-app",
+  "appIdentifier": "dev.electrobun.myapp",
+  "template": "minimal",
+  "database": "none",
+  "orm": "none",
+  "query": "none",
+  "router": "tanstack-router",
+  "runtime": "bun",
+  "buildEnv": "dev",
+  "buildTargets": "current",
+  "frontend": ["react"],
+  "styling": "tailwindcss",
+  "ui": "none",
+  "appMenu": "edit",
+  "addons": ["biome", "electrobun", "bun-test", "app-menu", "navigation-guard", "tanstack-router"],
+  "examples": ["rpc"],
+  "auth": "none",
+  "packageManager": "bun",
+  "dbSetup": "none",
+  "settings": "none",
+  "api": "electrobun-rpc",
+  "navigation": "local-only",
+  "nativeUtils": "none",
+  "windowStyle": "native",
+  "testing": "bun",
+  "git": false,
+  "install": false,
+  "features": {
+    "electrobun": true,
+    "react": true,
+    "tanstackRouter": true,
+    "tailwindcss": true,
+    "bunTest": true
+  }
+}
+```
+
+## Top-Level Fields
+
+| Field | Purpose |
+| --- | --- |
+| `$schema` | JSON schema URL for editor validation. |
+| `version` | Generator package version. |
+| `createdAt` | Original scaffold timestamp. Preserved by `add`. |
+| `reproducibleCommand` | Full command that can recreate the selected stack. |
+| `projectName` | Directory/app project name. |
+| `packageName` | Generated package name. |
+| `appIdentifier` | Electrobun reverse-DNS app identifier. |
+| `template` | Selected template profile. |
+| `frontend` | Renderer frontend list. Currently `["react"]`. |
+| `runtime` | Runtime selection. Currently `bun`. |
+| `router` | Renderer routing selection. |
+| `query` | Renderer async-state selection. |
+| `styling` | Styling mode. |
+| `ui` | UI library config selection. |
+| `api` | Native bridge selection. |
+| `navigation` | Native navigation-rule selection. |
+| `nativeUtils` | Native utility example selection. |
+| `windowStyle` | Window chrome selection. |
+| `appMenu` | Native app menu selection. |
+| `buildEnv` | Electrobun build channel. |
+| `buildTargets` | Electrobun build target mode. |
+| `database` | Database selection. |
+| `orm` | ORM selection. |
+| `dbSetup` | Database seed/setup selection. |
+| `settings` | Settings persistence selection. |
+| `auth` | Local app surface auth/lock selection. |
+| `testing` | Test scaffold selection. |
+| `addons` | Enabled addon labels. |
+| `examples` | Enabled example labels. |
+| `packageManager` | Install/script command selection. |
+| `git` | Whether git was initialized by the CLI. |
+| `install` | Whether dependency installation was requested by the CLI. |
+| `features` | Boolean feature map for tools and the `add` command. |
+
+## Feature Booleans
+
+`features` is intentionally redundant with top-level fields. It makes generated projects easy to inspect and gives the `add` command stable feature checks.
+
+Important booleans include:
+
+- `appLock`
+- `bunTest`
+- `databaseSettings`
+- `drizzle`
+- `editMenu`
+- `electrobunRpc`
+- `hiddenInsetTitlebar`
+- `jsonSettings`
+- `localNavigationGuard`
+- `nativeFileDialogs`
+- `reactRouter`
+- `settingsStore`
+- `shadcn`
+- `sqlite`
+- `tanstackQuery`
+- `tanstackRouter`
+- `tailwindcss`
+- `turborepo`
+
+## Editing Guidance
+
+Keep `ces.json` in source control. It is the source of truth for future generated additions.
+
+Prefer `create-electrobun-stack add` over manual edits. Hand-edit the manifest only when repairing metadata after a manual migration, and keep top-level fields and feature booleans consistent.
+
+If a new stack option is added to the generator, update:
+
+- `src/options.ts`
+- `src/manifest.ts`
+- `docs/ces.schema.json`
+- This page
+- `docs/options.md`
+- `docs/llm.txt`

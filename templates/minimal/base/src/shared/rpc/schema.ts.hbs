@@ -1,15 +1,6 @@
 {{#if hasElectrobunRpc}}
 import type { RPCSchema } from "electrobun";
-import type {
-  AppEnvironment,
-{{#if hasDatabase}}
-  DatabaseStatus,
-{{/if}}
-{{#if hasSettings}}
-  SettingValue,
-  SettingsStatus,
-{{/if}}
-} from "../types";
+import type * as Shared from "../types";
 
 export type MainViewRPC = {
   bun: RPCSchema<{
@@ -23,8 +14,14 @@ export type MainViewRPC = {
     requests: {
       getEnvironment: {
         params: null;
-        response: AppEnvironment;
+        response: Shared.AppEnvironment;
       };
+      {{#if hasNativeFileDialogs}}
+      openFileDialog: {
+        params: null;
+        response: Shared.FileDialogResult;
+      };
+      {{/if}}
       {{#if hasRpcExample}}
       greet: {
         params: {
@@ -38,20 +35,20 @@ export type MainViewRPC = {
       {{#if hasDatabase}}
       getDatabaseStatus: {
         params: null;
-        response: DatabaseStatus;
+        response: Shared.DatabaseStatus;
       };
       {{/if}}
       {{#if hasSettings}}
       getSettingsStatus: {
         params: null;
-        response: SettingsStatus;
+        response: Shared.SettingsStatus;
       };
       updateSetting: {
         params: {
           key: string;
-          value: SettingValue;
+          value: Shared.SettingValue;
         };
-        response: SettingsStatus;
+        response: Shared.SettingsStatus;
       };
       {{/if}}
     };

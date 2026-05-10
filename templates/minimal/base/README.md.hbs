@@ -2,10 +2,16 @@
 
 Generated with `create-electrobun-stack`.
 
-## Commands
+## Getting Started
 
 ```bash
 {{commands.install}}
+{{commands.dev}}
+```
+
+## Commands
+
+```bash
 {{commands.dev}}
 {{commands.build}}
 {{#if hasTesting}}
@@ -17,17 +23,24 @@ Generated with `create-electrobun-stack`.
 {{#if hasTurborepo}}
 {{commands.check}}
 {{/if}}
+{{#if hasDrizzle}}
+{{commands.dbGenerate}}
+{{commands.dbStudio}}
+{{/if}}
 ```
 
-## Stack
+## Selected Stack
 
-- Electrobun
-- Bun
-- React + Vite
-- TanStack Router
+- Electrobun desktop app
+- Bun native process
+- React + Vite renderer
+- {{routerDisplayName}}
+{{#if hasTanstackQuery}}
+- TanStack Query
+{{/if}}
 - {{#if hasTailwind}}Tailwind CSS{{else}}Plain CSS{{/if}}
 - {{#if hasElectrobunRpc}}Typed Electrobun RPC{{else}}Static renderer API{{/if}}
-- Electrobun {{#if hasAppMenu}}Edit menu{{else}}app menu disabled{{/if}}
+- {{#if hasAppMenu}}Native Edit menu{{else}}Native app menu disabled{{/if}}
 - {{#if hasNavigationGuard}}Local-only navigation guard{{else}}Renderer navigation guard disabled{{/if}}
 - {{#if hasHiddenInsetTitlebar}}Hidden inset titlebar{{else}}Native window chrome{{/if}}
 - {{stack.packageManager}} package manager metadata
@@ -51,15 +64,78 @@ Generated with `create-electrobun-stack`.
 {{#if hasDatabaseSettings}}
 - Database-backed settings store
 {{/if}}
+{{#if hasNativeFileDialogs}}
+- Native file dialog example
+{{/if}}
+{{#if hasShadcn}}
+- shadcn/ui project config
+{{/if}}
 
-`ces.json` records the generated stack, reproducible command, and feature flags for future `create-electrobun-stack` commands.
+## Project Layout
+
+```txt
+src/
+  bun/                  # Electrobun Bun process
+  shared/               # Types shared by Bun and renderer
+  views/main/           # React renderer
+```
+
+Start replacing the starter UI in `{{homeFilePath}}`.
+
+Native desktop code belongs in `src/bun`. Renderer code belongs in `src/views/main`. Shared payload types belong in `src/shared`.
+
+## Native Bridge
+
+{{#if hasElectrobunRpc}}
+Typed RPC is enabled. The contract lives in `src/shared/rpc/schema.ts`, Bun handlers live in `src/bun/rpc`, and the renderer client lives in `src/views/main/lib/rpc.ts`.
+{{else}}
+RPC is disabled. The renderer is loaded as a static WebView surface with no generated native bridge.
+{{/if}}
 {{#if hasRpcExample}}
 
 ## RPC Example
 
-Shared RPC types live in `src/shared/rpc/schema.ts`.
+The starter greeting/logging demo shows the full native bridge path:
 
-The Bun main process registers handlers in `src/bun/rpc/router.ts`.
-
-The renderer creates the WebView RPC client in `src/views/main/lib/rpc.ts`.
+- Shared RPC types: `src/shared/rpc/schema.ts`
+- Bun handlers: `src/bun/rpc/router.ts`
+- Renderer client: `src/views/main/lib/rpc.ts`
+- Demo UI: `{{homeFilePath}}`
 {{/if}}
+{{#if hasDatabase}}
+
+## Persistence
+
+SQLite is enabled through `src/bun/db/client.ts`.
+{{#if hasDrizzle}}
+
+Drizzle is enabled through `src/bun/db/schema.ts` and `drizzle.config.ts`.
+{{/if}}
+{{#if hasSeedData}}
+
+Starter seed data is inserted when the database is empty.
+{{/if}}
+{{/if}}
+{{#if hasSettings}}
+
+## Settings
+
+{{#if hasJsonSettings}}
+Settings are stored in a VS Code-style JSON settings store at `data/settings.json`.
+{{/if}}
+{{#if hasDatabaseSettings}}
+Settings are stored in SQLite.
+{{/if}}
+
+The settings RPC surface is defined in `src/shared/rpc/schema.ts` and implemented in `src/bun/settings/store.ts`.
+{{/if}}
+
+## Manifest
+
+`ces.json` records this generated stack, the reproducible command, and feature flags used by future `create-electrobun-stack` commands.
+
+Keep `ces.json` in source control. To enable supported missing features later, run:
+
+```bash
+bunx create-electrobun-stack add --cwd . <stack-options>
+```

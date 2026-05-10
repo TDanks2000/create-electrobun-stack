@@ -1,67 +1,30 @@
-create-electrobun-stack CLI usage guide for LLMs
+create-electrobun-stack LLM guide
 
-Use this file when helping a user scaffold an Electrobun desktop app with create-electrobun-stack.
+Purpose:
+Scaffold an Electrobun desktop app with Bun, React, TypeScript, Vite, Biome, typed Electrobun RPC, and optional integrations. The generated project includes ces.json so future tooling can understand and expand the stack.
 
-Primary command:
+Primary commands:
 
 bunx create-electrobun-stack my-app
+bunx create-electrobun-stack add --cwd my-app --orm drizzle
 
-Local development command inside the create-electrobun-stack repository:
+Local repository command:
 
 bun run src/index.ts my-app
+bun run src/index.ts add --cwd my-app --settings database
 
-What the CLI creates:
-- An Electrobun desktop app.
-- Bun main process entrypoint.
-- React renderer in an Electrobun WebView.
-- Electrobun Edit menu by default.
-- Local-only renderer navigation guard by default.
-- TanStack Router.
-- Tailwind CSS by default, or plain CSS when requested.
-- Strict TypeScript.
-- Biome.
-- Bun test by default.
-- Typed native Electrobun RPC bridge.
-- ces.json in the generated project root with Better-T-Stack-style stack metadata, a reproducible command, and feature flags.
-
-Default behavior:
-- If the user provides only a project name, scaffold the default stack.
-- Dependencies are installed with Bun by default.
-- Git is not initialized by default.
-- The current implemented template is minimal.
-- SQLite is implemented for the minimal template.
-- Drizzle is implemented when paired with --database sqlite.
-- --api none is implemented and omits BrowserWindow RPC wiring.
-- --auth app-lock is implemented as a local app-name lock screen.
-- --db-setup seed is implemented when paired with --database sqlite.
-- --settings json is implemented and adds a VS Code-style data/settings.json store.
-- --settings database is implemented when paired with --database sqlite and stores settings in SQLite.
-- --addons turborepo is implemented.
-- --package-manager supports bun, npm, pnpm, and yarn for dependency installation.
-- The default --app-menu edit adds an Electrobun ApplicationMenu with standard Edit roles.
-- --app-menu none omits the generated menu file and setup call.
-- The default --navigation local-only blocks non-views:// navigation from the renderer.
-- --navigation none omits the will-navigate guard.
-- --window-style hidden-inset adds Electrobun hiddenInset titlebar config and a draggable header.
-- --build-env controls electrobun build --env.
-- --build-targets controls electrobun build --targets.
-- The default --testing bun renders a Bun test script and generated manifest smoke test.
-- --testing none omits the test script and test files.
-- The default --examples rpc renders a starter RPC greeting/logging demo.
-- --examples none keeps the RPC bridge but omits the demo calls and generated README section.
-- Every generated project includes ces.json for future create-electrobun-stack commands.
-- ces.json has top-level fields like version, createdAt, reproducibleCommand, database, orm, frontend, addons, examples, api, and testing.
-- Settings modes require the native Electrobun RPC bridge; database settings also require SQLite.
-
-Default stack flags:
+Default stack:
 
 --template minimal
 --frontend react
+--router tanstack-router
+--query none
 --runtime bun
 --build-env dev
 --build-targets current
 --api electrobun-rpc
 --navigation local-only
+--native-utils none
 --window-style native
 --styling tailwindcss
 --ui none
@@ -78,113 +41,89 @@ Default stack flags:
 --install
 --no-git
 
-Recommended commands:
+Generated app:
+- Bun native process in src/bun.
+- React renderer in src/views/main.
+- Shared types in src/shared.
+- Typed RPC contract in src/shared/rpc/schema.ts when --api electrobun-rpc is selected.
+- ces.json manifest at project root.
+- Generated README tailored to selected options.
 
-Create a default app:
+Common generated commands with Bun:
 
-bunx create-electrobun-stack my-app
-
-Create without installing dependencies:
-
-bunx create-electrobun-stack my-app --no-install
-
-Create and initialize git:
-
-bunx create-electrobun-stack my-app --git
-
-Preview without writing files:
-
-bunx create-electrobun-stack my-app --dry-run
-
-Create in another parent directory:
-
-bunx create-electrobun-stack my-app --cwd ~/Desktop
-
-Override the Electrobun app identifier:
-
-bunx create-electrobun-stack my-app --app-id com.example.myapp
-
-Use non-interactive defaults:
-
-bunx create-electrobun-stack my-app --yes
-
-List templates:
-
-bunx create-electrobun-stack --list-templates
-
-Print help:
-
-bunx create-electrobun-stack --help
-
-Print version:
-
-bunx create-electrobun-stack --version
-
-Supported options:
-- --template minimal|standard|full
-- --frontend react
-- --runtime bun
-- --build-env dev|canary|stable
-- --build-targets current|all
-- --api electrobun-rpc|none
-- --navigation local-only|none
-- --window-style native|hidden-inset
-- --styling tailwindcss|css
-- --ui none|shadcn
-- --app-menu edit|none
-- --auth none|app-lock
-- --database none|sqlite
-- --orm none|drizzle
-- --db-setup none|seed
-- --settings none|json|database
-- --package-manager bun|npm|pnpm|yarn
-- --testing bun|none
-- --addons none|turborepo
-- --examples rpc|none
-- --install
-- --no-install
-- --git
-- --no-git
-- --cwd <path>
-- --app-id <reverse-dns-identifier>
-- --yes
-- --dry-run
-- --list-templates
-- --help
-- --version
-
-Important current limitations:
-- Only the minimal template is implemented.
-- standard and full are implemented profiles that currently share the minimal template source.
-- Invalid combinations fail before scaffolding unless --dry-run is used.
-
-Generated app commands after scaffolding:
-
-cd my-app
+bun install
 bun run dev
 bun run build
-bun test
 bun run typecheck
 bun run lint
 bun run format
+bun test
 
-If the user created with --no-install, run:
+Option behavior:
+- --router tanstack-router adds TanStack Router file routes, @tanstack/router-plugin, src/views/main/routes, and routeTree.gen.ts.
+- --router react-router adds React Router with HashRouter.
+- --router none renders Home directly.
+- --query tanstack-query adds @tanstack/react-query and QueryClientProvider.
+- --styling tailwindcss adds Tailwind CSS v4 and @tailwindcss/vite.
+- --styling css omits Tailwind dependencies.
+- --ui shadcn adds components.json and requires Tailwind CSS.
+- --api electrobun-rpc adds BrowserWindow RPC wiring, Bun handlers, shared RPC schema, and renderer RPC client.
+- --api none omits BrowserWindow RPC wiring.
+- --examples rpc adds starter greeting/logging RPC demo.
+- --examples none omits demo calls and generated README RPC example section.
+- --navigation local-only adds Electrobun navigation rules for bundled views.
+- --native-utils file-dialogs adds a typed RPC request backed by Electrobun Utils.openFileDialog.
+- --window-style hidden-inset uses Electrobun hiddenInset titlebar and adds a draggable renderer header.
+- --app-menu edit adds an Electrobun ApplicationMenu with standard Edit roles.
+- --auth app-lock adds a local renderer unlock screen. It is not remote auth.
+- --database sqlite adds a Bun SQLite client.
+- --orm drizzle adds Drizzle schema/config and requires SQLite.
+- --db-setup seed adds starter SQLite metadata and requires SQLite.
+- --settings json adds data/settings.json persistence and requires Electrobun RPC.
+- --settings database stores settings in SQLite and requires Electrobun RPC plus SQLite.
+- --package-manager bun|npm|pnpm|yarn controls install/run command text and package manager metadata.
+- --testing bun adds bun test and tests/manifest.test.ts.
+- --testing none omits tests.
+- --addons turborepo adds turbo.json and a check script.
 
-cd my-app
-bun install
-bun run dev
+Invalid combinations:
+- Drizzle requires SQLite.
+- Seed data requires SQLite.
+- Database-backed settings require SQLite.
+- Settings require Electrobun RPC.
+- Native file dialogs require Electrobun RPC.
+- RPC examples require Electrobun RPC.
+- shadcn requires Tailwind CSS.
 
-Behavior notes:
-- If no project name is provided in an interactive terminal, the CLI prompts for one.
-- If no project name is provided with --yes or in non-interactive mode, the CLI fails.
-- Empty existing target directories are allowed.
-- Non-empty target directories fail before files are written.
-- --dry-run is safe and writes no files.
-- --app-id must be reverse-DNS style, for example com.example.myapp.
+Add command:
+- Reads ces.json from cwd or --cwd.
+- Enables missing features only.
+- Preserves createdAt.
+- Refreshes ces.json.
+- Installs dependencies unless --no-install is passed.
+- Infers prerequisites:
+  - --orm drizzle -> --database sqlite
+  - --db-setup seed -> --database sqlite
+  - --settings database -> --database sqlite and --api electrobun-rpc
+  - --settings json -> --api electrobun-rpc
+  - --native-utils file-dialogs -> --api electrobun-rpc
+  - --examples rpc -> --api electrobun-rpc
+  - --ui shadcn -> --styling tailwindcss
+- Does not remove features or switch package managers/build settings.
 
-Electrobun notes for answers:
-- The starter uses Electrobun native typed RPC, not custom IPC.
-- The Bun side uses BrowserView.defineRPC.
-- The WebView side uses Electroview.defineRPC and new Electroview({ rpc }).
-- The app loads the renderer through views://.
-- Do not invent Electrobun APIs when explaining or extending the generated app.
+Manifest:
+- ces.json includes $schema, version, createdAt, reproducibleCommand, projectName, packageName, appIdentifier, template, stack fields, addons, examples, git, install, and features.
+- Keep ces.json in source control.
+- Prefer create-electrobun-stack add over hand-editing ces.json.
+
+Important paths in this repository:
+- src/options.ts defines option types, defaults, choices, validation, and flag parsing helpers.
+- src/prompts.ts defines interactive prompts.
+- src/cli.ts parses arguments and implements create/add flows.
+- src/manifest.ts creates and reads manifest stack metadata.
+- src/scaffold.ts renders templates and option overlays.
+- templates/minimal/base contains common generated files.
+- templates/minimal/options contains feature overlays.
+- tests/cli.test.ts is the main behavior test suite.
+
+Do not invent Electrobun APIs when explaining the generated app. The starter uses Electrobun's typed RPC, BrowserWindow/BrowserView APIs, ApplicationMenu roles, navigation rules, and Utils.openFileDialog where selected.

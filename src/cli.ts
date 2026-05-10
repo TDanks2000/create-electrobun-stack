@@ -1,5 +1,6 @@
-import { resolve } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { intro, note, outro, spinner } from "@clack/prompts";
+import { type CesManifest, stackOptionsFromCesManifest } from "./manifest";
 import {
   defaultStackOptions,
   formatStackOptions,
@@ -23,7 +24,7 @@ import {
   promptStackOptions,
   promptTemplate,
 } from "./prompts";
-import { scaffoldProject, type TemplateName } from "./scaffold";
+import { addToProject, scaffoldProject, type TemplateName } from "./scaffold";
 import { formatList } from "./utils/format";
 import { logger } from "./utils/logger";
 import {
@@ -31,8 +32,11 @@ import {
   validateProjectName,
 } from "./utils/validate-project-name";
 
+type CliCommand = "add" | "create";
+
 type CliOptions = {
   appIdentifier: string | null;
+  command: CliCommand;
   cwd: string;
   dryRun: boolean;
   git: boolean;
@@ -103,52 +107,75 @@ const printHelp = (): void => {
   logger.info(`
 Usage:
   bunx create-electrobun-stack my-app
-  bunx create-electrobun-stack my-app --frontend react --runtime bun --styling tailwindcss
+  bunx create-electrobun-stack add --database sqlite
+  bunx create-electrobun-stack my-app --frontend react --router tanstack-router --runtime bun --styling tailwindcss
   bun run src/index.ts my-app --no-install --git
+  bun run src/index.ts add --cwd my-app --settings database
 
 Defaults:
-  --template ${defaultTemplate}
-  --frontend react --runtime bun --build-env dev --build-targets current
-  --api electrobun-rpc --navigation local-only --window-style native
-  --styling tailwindcss --ui none --app-menu edit
-  --auth none --database none --orm none --db-setup none
-  --settings none --package-manager bun --testing bun --addons none --examples rpc --install --no-git
+  Core stack:
+    --template ${defaultTemplate}
+    --frontend react --router tanstack-router --query none --runtime bun
+    --styling tailwindcss --ui none
+    --auth none --database none --orm none --db-setup none --settings none
+  Electrobun features:
+    --api electrobun-rpc --navigation local-only --native-utils none
+    --window-style native --app-menu edit
+    --build-env dev --build-targets current
+  Tooling:
+    --package-manager bun --testing bun --addons none --examples rpc
+    --install --no-git
 
 Options:
-  --template minimal|standard|full
-  --frontend react
-  --runtime bun
-  --build-env dev|canary|stable
-  --build-targets current|all
-  --api electrobun-rpc|none
-  --navigation local-only|none
-  --window-style native|hidden-inset
-  --styling tailwindcss|css
-  --ui none|shadcn
-  --app-menu edit|none
-  --auth none|app-lock
-  --database none|sqlite
-  --orm none|drizzle
-  --db-setup none|seed
-  --settings none|json|database
-  --package-manager bun|npm|pnpm|yarn
-  --testing bun|none
-  --addons none|turborepo
-  --examples rpc|none
-  --install / --no-install
-  --git / --no-git
-  --cwd <path>
-  --app-id <identifier>
-  --yes
-  --dry-run
-  --list-templates
-  --version
-  --help
+  Core stack:
+    --template minimal|standard|full
+    --frontend react
+    --router tanstack-router|react-router|none
+    --query none|tanstack-query
+    --runtime bun
+    --styling tailwindcss|css
+    --ui none|shadcn
+    --auth none|app-lock
+    --database none|sqlite
+    --orm none|drizzle
+    --db-setup none|seed
+    --settings none|json|database
 
-Interactive mode asks for omitted stack choices. Use --yes to accept defaults.`);
+  Electrobun feature options:
+    --api electrobun-rpc|none
+    --navigation local-only|none
+    --native-utils none|file-dialogs
+    --window-style native|hidden-inset
+    --app-menu edit|none
+    --build-env dev|canary|stable
+    --build-targets current|all
+
+  Tooling and output:
+    --package-manager bun|npm|pnpm|yarn
+    --testing bun|none
+    --addons none|turborepo
+    --examples rpc|none
+    --install / --no-install
+    --git / --no-git
+    --cwd <path>
+    --app-id <identifier>
+    --yes
+    --dry-run
+    --list-templates
+    --version
+    --help
+
+Add command:
+  create-electrobun-stack add [stack options]
+  Reads ces.json from the current directory, or from --cwd <project-directory>,
+  and enables missing stack features without accepting a project name.
+
+Interactive mode asks for omitted stack choices when creating. Use --yes to accept defaults.`);
 };
 
 export const parseArgs = (args: Array<string>): CliOptions => {
+  const command: CliCommand = args[0] === "add" ? "add" : "create";
+  const startIndex = command === "add" ? 1 : 0;
   let appIdentifier: string | null = null;
   let cwd = process.cwd();
   let dryRun = false;
@@ -163,7 +190,7 @@ export const parseArgs = (args: Array<string>): CliOptions => {
   const stack: StackOptions = { ...defaultStackOptions };
   const stackFlags = new Set<StackOptionName>();
 
-  for (let index = 0; index < args.length; index += 1) {
+  for (let index = startIndex; index < args.length; index += 1) {
     const arg = args[index];
 
     if (!arg) {
@@ -282,6 +309,12 @@ export const parseArgs = (args: Array<string>): CliOptions => {
       throw new Error(`Unknown option: ${arg}`);
     }
 
+    if (command === "add") {
+      throw new Error(
+        `Unexpected argument for add: "${arg}". Use --cwd <project-directory> to choose the existing stack.`,
+      );
+    }
+
     if (projectName) {
       throw new Error(
         `Received multiple project names: "${projectName}" and "${arg}".`,
@@ -297,6 +330,7 @@ export const parseArgs = (args: Array<string>): CliOptions => {
 
   return {
     appIdentifier,
+    command,
     cwd,
     dryRun,
     git: gitEnabled,
@@ -328,6 +362,545 @@ const runStep = async (
   }
 };
 
+const getDisplayPath = (targetDirectory: string): string => {
+  const relativeTarget = relative(process.cwd(), targetDirectory);
+
+  if (
+    relativeTarget &&
+    relativeTarget !== ".." &&
+    !relativeTarget.startsWith(`..${sep}`) &&
+    !isAbsolute(relativeTarget)
+  ) {
+    return relativeTarget;
+  }
+
+  return targetDirectory;
+};
+
+const formatCommandRows = (
+  rows: Array<{ command: string; detail: string }>,
+): Array<string> => {
+  const commandWidth = Math.max(...rows.map((row) => row.command.length));
+
+  return rows.map(
+    (row) => `  ${row.command.padEnd(commandWidth)}  ${row.detail}`,
+  );
+};
+
+const formatNextStepRows = (
+  rows: Array<{ command: string; detail: string }>,
+): Array<string> => {
+  const commandWidth = Math.max(...rows.map((row) => row.command.length));
+
+  return rows.map(
+    (row, index) =>
+      `${index + 1}. ${row.command.padEnd(commandWidth)}  ${row.detail}`,
+  );
+};
+
+export const createFinalScreen = ({
+  gitInitialized,
+  installAttempted,
+  installed,
+  projectName,
+  stack,
+  targetDirectory,
+}: {
+  gitInitialized: boolean;
+  installAttempted: boolean;
+  installed: boolean;
+  projectName: string;
+  stack: StackOptions;
+  targetDirectory: string;
+}): Array<string> => {
+  const installCommand = getInstallCommand(stack.packageManager);
+  const devCommand = getRunCommand(stack.packageManager, "dev");
+  const buildCommand = getRunCommand(stack.packageManager, "build");
+  const checkCommand = getRunCommand(stack.packageManager, "check");
+  const lintCommand = getRunCommand(stack.packageManager, "lint");
+  const testCommand = getRunCommand(stack.packageManager, "test");
+  const typecheckCommand = getRunCommand(stack.packageManager, "typecheck");
+  const nextSteps = [
+    {
+      command: `cd ${getDisplayPath(targetDirectory)}`,
+      detail: "Enter the project",
+    },
+    ...(installed
+      ? []
+      : [
+          {
+            command: installCommand,
+            detail: installAttempted
+              ? "Retry dependency install"
+              : "Install dependencies",
+          },
+        ]),
+    {
+      command: devCommand,
+      detail: "Start the Electrobun app",
+    },
+  ];
+  const usefulCommands =
+    stack.addons === "turborepo"
+      ? [
+          {
+            command: checkCommand,
+            detail:
+              stack.testing === "bun"
+                ? "Run typecheck, lint, and tests"
+                : "Run typecheck and lint",
+          },
+          {
+            command: buildCommand,
+            detail: "Build the desktop app",
+          },
+        ]
+      : [
+          {
+            command: typecheckCommand,
+            detail: "Check TypeScript",
+          },
+          {
+            command: lintCommand,
+            detail: "Run Biome checks",
+          },
+          ...(stack.testing === "bun"
+            ? [
+                {
+                  command: testCommand,
+                  detail: "Run tests",
+                },
+              ]
+            : []),
+          {
+            command: buildCommand,
+            detail: "Build the desktop app",
+          },
+        ];
+
+  return [
+    `Project: ${projectName}`,
+    installed
+      ? "Dependencies: installed"
+      : installAttempted
+        ? "Dependencies: install needs a retry"
+        : "Dependencies: install skipped",
+    ...(gitInitialized ? ["Git: initialized"] : []),
+    "",
+    "Next steps:",
+    ...formatNextStepRows(nextSteps),
+    "",
+    "Useful commands:",
+    ...formatCommandRows(usefulCommands),
+  ];
+};
+
+type StackChange = {
+  from: string;
+  name: StackOptionName;
+  to: string;
+};
+
+const stackOptionNames = Object.keys(
+  defaultStackOptions,
+) as Array<StackOptionName>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const readCesManifest = async (
+  targetDirectory: string,
+): Promise<CesManifest> => {
+  const manifestPath = join(targetDirectory, "ces.json");
+  const manifestFile = Bun.file(manifestPath);
+
+  if (!(await manifestFile.exists())) {
+    throw new Error(
+      `Could not find ces.json in ${targetDirectory}. Run add inside an existing create-electrobun-stack project or pass --cwd <project-directory>.`,
+    );
+  }
+
+  const manifest = (await manifestFile.json()) as unknown;
+
+  if (!isRecord(manifest)) {
+    throw new Error(`ces.json is not a valid manifest: ${manifestPath}`);
+  }
+
+  const hasRequiredStrings =
+    typeof manifest.projectName === "string" &&
+    typeof manifest.packageName === "string" &&
+    typeof manifest.appIdentifier === "string" &&
+    typeof manifest.template === "string" &&
+    typeof manifest.createdAt === "string";
+
+  if (
+    !hasRequiredStrings ||
+    !Array.isArray(manifest.addons) ||
+    !Array.isArray(manifest.examples) ||
+    !isRecord(manifest.features)
+  ) {
+    throw new Error(
+      `ces.json is missing required stack metadata: ${manifestPath}`,
+    );
+  }
+
+  return manifest as CesManifest;
+};
+
+const applyStackFlagOverrides = (
+  target: StackOptions,
+  source: StackOptions,
+  flags: ReadonlySet<StackOptionName>,
+): void => {
+  for (const flag of flags) {
+    target[flag] = source[flag] as never;
+  }
+};
+
+const inferStackOption = <Name extends StackOptionName>(
+  stack: StackOptions,
+  requestedFlags: ReadonlySet<StackOptionName>,
+  name: Name,
+  value: StackOptions[Name],
+  reason: string,
+  inferredChanges: Array<string>,
+): void => {
+  if (requestedFlags.has(name) || stack[name] === value) {
+    return;
+  }
+
+  const previousValue = stack[name];
+  stack[name] = value;
+  inferredChanges.push(`${name}: ${previousValue} -> ${value} (${reason})`);
+};
+
+const inferAddDependencies = (
+  stack: StackOptions,
+  requestedFlags: ReadonlySet<StackOptionName>,
+): Array<string> => {
+  const inferredChanges: Array<string> = [];
+
+  if (stack.orm === "drizzle") {
+    inferStackOption(
+      stack,
+      requestedFlags,
+      "database",
+      "sqlite",
+      "Drizzle requires SQLite",
+      inferredChanges,
+    );
+  }
+
+  if (stack.dbSetup === "seed") {
+    inferStackOption(
+      stack,
+      requestedFlags,
+      "database",
+      "sqlite",
+      "seed data requires SQLite",
+      inferredChanges,
+    );
+  }
+
+  if (stack.settings === "database") {
+    inferStackOption(
+      stack,
+      requestedFlags,
+      "database",
+      "sqlite",
+      "database-backed settings require SQLite",
+      inferredChanges,
+    );
+  }
+
+  if (stack.settings !== "none" || stack.examples === "rpc") {
+    inferStackOption(
+      stack,
+      requestedFlags,
+      "api",
+      "electrobun-rpc",
+      "RPC-backed features require Electrobun RPC",
+      inferredChanges,
+    );
+  }
+
+  if (stack.nativeUtils !== "none") {
+    inferStackOption(
+      stack,
+      requestedFlags,
+      "api",
+      "electrobun-rpc",
+      "native utility examples require Electrobun RPC",
+      inferredChanges,
+    );
+  }
+
+  if (stack.ui === "shadcn") {
+    inferStackOption(
+      stack,
+      requestedFlags,
+      "styling",
+      "tailwindcss",
+      "shadcn/ui requires Tailwind CSS",
+      inferredChanges,
+    );
+  }
+
+  return inferredChanges;
+};
+
+const createStackChanges = (
+  currentStack: StackOptions,
+  nextStack: StackOptions,
+): Array<StackChange> =>
+  stackOptionNames.flatMap((name) =>
+    currentStack[name] === nextStack[name]
+      ? []
+      : [
+          {
+            from: String(currentStack[name]),
+            name,
+            to: String(nextStack[name]),
+          },
+        ],
+  );
+
+const isAdditiveStackChange = (change: StackChange): boolean => {
+  switch (change.name) {
+    case "addons":
+      return change.from === "none" && change.to === "turborepo";
+    case "api":
+      return change.from === "none" && change.to === "electrobun-rpc";
+    case "appMenu":
+      return change.from === "none" && change.to === "edit";
+    case "auth":
+      return change.from === "none" && change.to === "app-lock";
+    case "database":
+      return change.from === "none" && change.to === "sqlite";
+    case "dbSetup":
+      return change.from === "none" && change.to === "seed";
+    case "examples":
+      return change.from === "none" && change.to === "rpc";
+    case "navigation":
+      return change.from === "none" && change.to === "local-only";
+    case "nativeUtils":
+      return change.from === "none" && change.to === "file-dialogs";
+    case "orm":
+      return change.from === "none" && change.to === "drizzle";
+    case "settings":
+      return (
+        change.from === "none" &&
+        (change.to === "json" || change.to === "database")
+      );
+    case "styling":
+      return change.from === "css" && change.to === "tailwindcss";
+    case "testing":
+      return change.from === "none" && change.to === "bun";
+    case "ui":
+      return change.from === "none" && change.to === "shadcn";
+    case "windowStyle":
+      return change.from === "native" && change.to === "hidden-inset";
+    case "query":
+      return change.from === "none" && change.to === "tanstack-query";
+    case "router":
+      return (
+        change.from === "none" &&
+        (change.to === "tanstack-router" || change.to === "react-router")
+      );
+    case "buildEnv":
+    case "buildTargets":
+    case "frontend":
+    case "packageManager":
+    case "runtime":
+      return false;
+  }
+};
+
+const formatStackChange = (change: StackChange): string =>
+  `${change.name}: ${change.from} -> ${change.to}`;
+
+const assertAdditiveStackChanges = (changes: Array<StackChange>): void => {
+  const unsupported = changes.filter(
+    (change) => !isAdditiveStackChange(change),
+  );
+
+  if (unsupported.length === 0) {
+    return;
+  }
+
+  throw new Error(
+    [
+      "The add command can only enable missing stack features.",
+      "Unsupported changes:",
+      ...unsupported.map((change) => `  ${formatStackChange(change)}`),
+    ].join("\n"),
+  );
+};
+
+const createAddFinalScreen = ({
+  changes,
+  installAttempted,
+  installed,
+  projectName,
+  stack,
+  targetDirectory,
+}: {
+  changes: Array<StackChange>;
+  installAttempted: boolean;
+  installed: boolean;
+  projectName: string;
+  stack: StackOptions;
+  targetDirectory: string;
+}): Array<string> => {
+  const installCommand = getInstallCommand(stack.packageManager);
+  const devCommand = getRunCommand(stack.packageManager, "dev");
+  const nextSteps = [
+    {
+      command: `cd ${getDisplayPath(targetDirectory)}`,
+      detail: "Enter the project",
+    },
+    ...(installed
+      ? []
+      : [
+          {
+            command: installCommand,
+            detail: installAttempted
+              ? "Retry dependency install"
+              : "Install dependencies",
+          },
+        ]),
+    {
+      command: devCommand,
+      detail: "Start the Electrobun app",
+    },
+  ];
+
+  return [
+    `Project: ${projectName}`,
+    "ces.json: updated",
+    installed
+      ? "Dependencies: installed"
+      : installAttempted
+        ? "Dependencies: install needs a retry"
+        : "Dependencies: install skipped",
+    "",
+    "Added:",
+    ...changes.map((change) => `  ${formatStackChange(change)}`),
+    "",
+    "Next steps:",
+    ...formatNextStepRows(nextSteps),
+  ];
+};
+
+const runAddCommand = async (options: CliOptions): Promise<void> => {
+  if (options.stackFlags.size === 0) {
+    throw new Error("Choose at least one stack option to add.");
+  }
+
+  const targetDirectory = resolve(options.cwd);
+
+  intro("create-electrobun-stack add");
+
+  const manifest = await readCesManifest(targetDirectory);
+  const currentStack = stackOptionsFromCesManifest(manifest);
+
+  validateStackOptions(currentStack);
+
+  const stack: StackOptions = { ...currentStack };
+  applyStackFlagOverrides(stack, options.stack, options.stackFlags);
+  const inferredChanges = inferAddDependencies(stack, options.stackFlags);
+
+  validateStackOptions(stack);
+
+  const changes = createStackChanges(currentStack, stack);
+
+  if (changes.length === 0) {
+    note(
+      [
+        `Project: ${manifest.projectName}`,
+        `Manifest: ${join(targetDirectory, "ces.json")}`,
+        "Requested stack options are already present.",
+      ].join("\n"),
+      "Resolved add",
+    );
+    outro("No changes.");
+    return;
+  }
+
+  assertAdditiveStackChanges(changes);
+
+  note(
+    [
+      `Project: ${manifest.projectName}`,
+      `Manifest: ${join(targetDirectory, "ces.json")}`,
+      "Additions:",
+      ...changes.map((change) => `  ${formatStackChange(change)}`),
+      ...(inferredChanges.length > 0
+        ? [
+            "Inferred prerequisites:",
+            ...inferredChanges.map((item) => `  ${item}`),
+          ]
+        : []),
+      `Install: ${options.install ? "yes" : "no"}`,
+    ].join("\n"),
+    "Resolved add",
+  );
+
+  if (options.dryRun) {
+    logger.box([
+      "Dry run:",
+      `target: ${targetDirectory}`,
+      "additions:",
+      ...changes.map((change) => `  ${formatStackChange(change)}`),
+      "No files were written.",
+    ]);
+    outro("No files were written.");
+    return;
+  }
+
+  await runStep("Adding stack options", () =>
+    addToProject({
+      install: options.install,
+      manifest,
+      stack,
+      targetDirectory,
+    }),
+  );
+
+  logger.success(`Updated ${manifest.projectName} from ces.json.`);
+
+  let installed = false;
+  const installCommand = getInstallCommand(stack.packageManager);
+
+  if (options.install) {
+    try {
+      await runStep(
+        `Installing dependencies with ${stack.packageManager}`,
+        () => packageManager.install(targetDirectory, stack.packageManager),
+      );
+      installed = true;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      logger.warn(`Dependency install failed: ${message}`);
+      logger.info(
+        `Stack files were updated. Run ${installCommand} inside the project when ready.`,
+      );
+    }
+  }
+
+  logger.box(
+    createAddFinalScreen({
+      changes,
+      installAttempted: options.install,
+      installed,
+      projectName: manifest.projectName,
+      stack,
+      targetDirectory,
+    }),
+  );
+  outro("Ready.");
+};
+
 export const runCli = async (args: Array<string>): Promise<void> => {
   try {
     const options = parseArgs(args);
@@ -344,6 +917,11 @@ export const runCli = async (args: Array<string>): Promise<void> => {
 
     if (options.listTemplates) {
       printTemplates();
+      return;
+    }
+
+    if (options.command === "add") {
+      await runAddCommand(options);
       return;
     }
 
@@ -448,8 +1026,6 @@ export const runCli = async (args: Array<string>): Promise<void> => {
 
     let installed = false;
     const installCommand = getInstallCommand(stack.packageManager);
-    const devCommand = getRunCommand(stack.packageManager, "dev");
-    const typecheckCommand = getRunCommand(stack.packageManager, "typecheck");
 
     if (options.install) {
       try {
@@ -468,12 +1044,16 @@ export const runCli = async (args: Array<string>): Promise<void> => {
       }
     }
 
-    logger.box([
-      "Next steps:",
-      `cd ${projectName}`,
-      installed ? devCommand : installCommand,
-      installed ? typecheckCommand : devCommand,
-    ]);
+    logger.box(
+      createFinalScreen({
+        gitInitialized: options.git,
+        installAttempted: options.install,
+        installed,
+        projectName,
+        stack,
+        targetDirectory,
+      }),
+    );
     outro("Ready.");
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";

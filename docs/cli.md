@@ -4,60 +4,107 @@
 
 ```bash
 bunx create-electrobun-stack <project-name> [options]
+bunx create-electrobun-stack add [options]
 ```
 
-Local development:
+Local development inside this repository:
 
 ```bash
 bun run src/index.ts <project-name> [options]
+bun run src/index.ts add --cwd <project-directory> [options]
 ```
 
-## General Options
+## Commands
 
-| Option | Description |
-| --- | --- |
-| `--help`, `-h` | Print help. |
-| `--version`, `-v` | Print CLI version. |
-| `--list-templates` | Print available template profiles. |
-| `--dry-run` | Print the resolved scaffold plan without writing files. |
-| `--install` | Run `bun install` after scaffolding. Default. |
-| `--no-install` | Skip dependency installation. |
-| `--git` | Run `git init` after scaffolding. |
-| `--no-git` | Do not initialize git. Default. |
-| `--cwd <path>` | Scaffold relative to a different parent directory. |
-| `--app-id <identifier>` | Override the generated Electrobun app identifier. |
-| `--yes`, `-y` | Use defaults and require the project name to be provided. |
+### Create
 
-## Generated Manifest
+`create` is the default command. Pass a project name and optional stack flags:
 
-The CLI writes `ces.json` in the generated project root. The manifest follows a Better-T-Stack-inspired shape with `$schema`, `version`, `createdAt`, `reproducibleCommand`, project identifiers, flat stack fields such as `database`, `orm`, `settings`, `frontend`, `addons`, `examples`, and `features` booleans for integrations such as `shadcn`, `sqlite`, `drizzle`, `bunTest`, `appLock`, `settingsStore`, and `turborepo`.
+```bash
+bunx create-electrobun-stack my-app --router tanstack-router --styling tailwindcss
+```
+
+If a project name is omitted in an interactive terminal, the CLI prompts for one. In non-interactive mode, or when using `--yes`, the project name is required.
+
+The target directory may not contain files. Empty existing directories are allowed.
+
+### Add
+
+`add` expands an existing generated project:
+
+```bash
+cd my-app
+bunx create-electrobun-stack add --database sqlite --orm drizzle
+```
+
+The command reads `ces.json`, applies only the flags you pass, infers required prerequisites, writes the missing template files, and refreshes `ces.json`.
+
+`add` can enable missing features. It does not remove features, switch package managers, change build channels, or replace one router with another.
+
+## Operational Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--help`, `-h` | off | Print CLI help. |
+| `--version`, `-v` | off | Print the package version. |
+| `--list-templates` | off | Print available template profiles. |
+| `--dry-run` | off | Print the resolved plan without writing files. |
+| `--yes`, `-y` | off | Use defaults for omitted options. Requires a project name. |
+| `--cwd <path>` | current directory | Create under another parent directory, or point `add` at an existing project. |
+| `--app-id <identifier>` | generated from package name | Override the Electrobun reverse-DNS app identifier. |
+| `--install` | on | Install dependencies after writing files. |
+| `--no-install` | off | Skip dependency installation. |
+| `--git` | off | Initialize a git repository after scaffolding. |
+| `--no-git` | on | Do not initialize git. |
+
+`--app-id` must be reverse-DNS style, for example `com.example.myapp`.
 
 ## Stack Options
 
-These options intentionally mirror the shape of stack scaffolders like `better-t-stack`.
-
-| Option | Values | Current support |
+| Option | Values | Default |
 | --- | --- | --- |
-| `--template` | `minimal`, `standard`, `full` | implemented profiles |
-| `--frontend` | `react` | implemented |
-| `--runtime` | `bun` | implemented |
-| `--build-env` | `dev`, `canary`, `stable` | passed to `electrobun build --env` |
-| `--build-targets` | `current`, `all` | passed to `electrobun build --targets` |
-| `--api` | `electrobun-rpc`, `none` | implemented |
-| `--navigation` | `local-only`, `none` | `local-only` blocks non-`views://` navigation |
-| `--window-style` | `native`, `hidden-inset` | `hidden-inset` adds macOS titlebar config and a draggable header |
-| `--styling` | `tailwindcss`, `css` | implemented |
-| `--ui` | `none`, `shadcn` | `shadcn` implemented with Tailwind CSS |
-| `--app-menu` | `edit`, `none` | `edit` adds native Edit menu roles for keyboard shortcuts |
-| `--auth` | `none`, `app-lock` | `app-lock` adds a local UI lock |
-| `--database` | `none`, `sqlite` | implemented |
-| `--orm` | `none`, `drizzle` | `drizzle` implemented with SQLite |
-| `--db-setup` | `none`, `seed` | `seed` adds starter SQLite metadata |
-| `--settings` | `none`, `json`, `database` | `json` adds `data/settings.json`; `database` stores settings in SQLite |
-| `--package-manager` | `bun`, `npm`, `pnpm`, `yarn` | controls dependency install command |
-| `--testing` | `bun`, `none` | `bun` adds a Bun test script and generated manifest smoke test |
-| `--addons` | `none`, `turborepo` | `turborepo` adds `turbo.json` and Turbo scripts |
-| `--examples` | `rpc`, `none` | `rpc` renders the starter RPC greeting/logging demo; `none` omits demo calls |
+| `--template` | `minimal`, `standard`, `full` | `minimal` |
+| `--frontend` | `react` | `react` |
+| `--router` | `tanstack-router`, `react-router`, `none` | `tanstack-router` |
+| `--query` | `none`, `tanstack-query` | `none` |
+| `--runtime` | `bun` | `bun` |
+| `--styling` | `tailwindcss`, `css` | `tailwindcss` |
+| `--ui` | `none`, `shadcn` | `none` |
+| `--auth` | `none`, `app-lock` | `none` |
+| `--database` | `none`, `sqlite` | `none` |
+| `--orm` | `none`, `drizzle` | `none` |
+| `--db-setup` | `none`, `seed` | `none` |
+| `--settings` | `none`, `json`, `database` | `none` |
+| `--package-manager` | `bun`, `npm`, `pnpm`, `yarn` | `bun` |
+| `--testing` | `bun`, `none` | `bun` |
+| `--addons` | `none`, `turborepo` | `none` |
+| `--examples` | `rpc`, `none` | `rpc` |
+
+## Electrobun Feature Options
+
+| Option | Values | Default |
+| --- | --- | --- |
+| `--api` | `electrobun-rpc`, `none` | `electrobun-rpc` |
+| `--navigation` | `local-only`, `none` | `local-only` |
+| `--native-utils` | `none`, `file-dialogs` | `none` |
+| `--window-style` | `native`, `hidden-inset` | `native` |
+| `--app-menu` | `edit`, `none` | `edit` |
+| `--build-env` | `dev`, `canary`, `stable` | `dev` |
+| `--build-targets` | `current`, `all` | `current` |
+
+## Valid Combinations
+
+The CLI fails before files are written when unsupported combinations are selected:
+
+- `--orm drizzle` requires `--database sqlite`.
+- `--db-setup seed` requires `--database sqlite`.
+- `--settings database` requires `--database sqlite`.
+- `--settings json` and `--settings database` require `--api electrobun-rpc`.
+- `--native-utils file-dialogs` requires `--api electrobun-rpc`.
+- `--examples rpc` requires `--api electrobun-rpc`.
+- `--ui shadcn` requires `--styling tailwindcss`.
+
+The `add` command can infer some prerequisites. For example, `add --orm drizzle` enables SQLite if it was missing, and `add --ui shadcn` enables Tailwind CSS if the app was created with plain CSS.
 
 ## Examples
 
@@ -67,76 +114,22 @@ Default stack:
 bunx create-electrobun-stack my-app
 ```
 
-Explicit supported stack:
+Non-interactive default stack:
 
 ```bash
-bunx create-electrobun-stack my-app \
-  --frontend react \
-  --runtime bun \
-  --build-env dev \
-  --build-targets current \
-  --api electrobun-rpc \
-  --navigation local-only \
-  --window-style native \
-  --styling tailwindcss \
-  --ui shadcn \
-  --app-menu edit \
-  --auth none \
-  --database none \
-  --orm none \
-  --db-setup none \
-  --settings none \
-  --package-manager bun \
-  --testing bun \
-  --addons none \
-  --examples rpc \
-  --install
+bunx create-electrobun-stack my-app --yes
 ```
 
-Create without the Bun test scaffold:
+Create without installation:
 
 ```bash
-bunx create-electrobun-stack my-app --testing none
+bunx create-electrobun-stack my-app --no-install
 ```
 
-Preview optional stack choices:
+Dry run:
 
 ```bash
-bunx create-electrobun-stack my-app \
-  --frontend react \
-  --auth app-lock \
-  --addons turborepo \
-  --dry-run
-```
-
-Invalid combinations, such as `--db-setup seed` without SQLite, fail before files are written.
-
-Create with a VS Code-style JSON settings file:
-
-```bash
-bunx create-electrobun-stack my-app --settings json
-```
-
-Create with database-backed settings:
-
-```bash
-bunx create-electrobun-stack my-app \
-  --database sqlite \
-  --settings database
-```
-
-Create with SQLite and Drizzle:
-
-```bash
-bunx create-electrobun-stack my-app \
-  --database sqlite \
-  --orm drizzle
-```
-
-Create without the starter RPC demo:
-
-```bash
-bunx create-electrobun-stack my-app --examples none
+bunx create-electrobun-stack my-app --dry-run
 ```
 
 Create in another parent directory:
@@ -145,8 +138,90 @@ Create in another parent directory:
 bunx create-electrobun-stack my-app --cwd ~/Desktop
 ```
 
-Override the app identifier:
+Use React Router and TanStack Query:
 
 ```bash
-bunx create-electrobun-stack my-app --app-id com.example.myapp
+bunx create-electrobun-stack my-app \
+  --router react-router \
+  --query tanstack-query
 ```
+
+Use plain CSS and no renderer router:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --router none \
+  --styling css
+```
+
+Use SQLite and Drizzle:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --database sqlite \
+  --orm drizzle
+```
+
+Use SQLite-backed settings:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --database sqlite \
+  --settings database
+```
+
+Use JSON settings:
+
+```bash
+bunx create-electrobun-stack my-app --settings json
+```
+
+Use a native file dialog example:
+
+```bash
+bunx create-electrobun-stack my-app --native-utils file-dialogs
+```
+
+Use hidden inset window chrome:
+
+```bash
+bunx create-electrobun-stack my-app --window-style hidden-inset
+```
+
+Create a cleaner starter without demo RPC calls:
+
+```bash
+bunx create-electrobun-stack my-app --examples none
+```
+
+Add Drizzle later:
+
+```bash
+bunx create-electrobun-stack add --orm drizzle
+```
+
+Add database-backed settings later:
+
+```bash
+bunx create-electrobun-stack add --settings database
+```
+
+## Generated Commands
+
+The generated README is tailored to the selected package manager. With Bun, the common commands are:
+
+```bash
+bun install
+bun run dev
+bun run build
+bun run typecheck
+bun run lint
+bun run format
+bun test
+```
+
+Options may add commands:
+
+- `--addons turborepo` adds `bun run check`.
+- `--orm drizzle` adds `bun run db:generate` and `bun run db:studio`.
+- `--testing none` omits `bun test`.

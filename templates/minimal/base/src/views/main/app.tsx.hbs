@@ -1,10 +1,25 @@
+{{#if hasTanstackQuery}}
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+{{/if}}
+{{#if hasTanstackRouter}}
 import {
   createHashHistory,
   createRouter,
   RouterProvider,
 } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+{{else}}
+{{#if hasReactRouter}}
+import { HashRouter, Route, Routes } from "react-router";
+{{/if}}
+import { Home } from "./home";
+{{/if}}
 
+{{#if hasTanstackQuery}}
+const queryClient = new QueryClient();
+
+{{/if}}
+{{#if hasTanstackRouter}}
 const router = createRouter({
   history: createHashHistory(),
   routeTree,
@@ -16,4 +31,23 @@ declare module "@tanstack/react-router" {
   }
 }
 
-export const App = () => <RouterProvider router={router} />;
+const AppView = () => <RouterProvider router={router} />;
+{{else}}
+{{#if hasReactRouter}}
+const AppView = () => (
+  <HashRouter>
+    <Routes>
+      <Route element={<Home />} path="/" />
+    </Routes>
+  </HashRouter>
+);
+{{else}}
+const AppView = () => <Home />;
+{{/if}}
+{{/if}}
+
+export const App = () =>{{#if hasTanstackQuery}} (
+  <QueryClientProvider client={queryClient}>
+    <AppView />
+  </QueryClientProvider>
+);{{else}} <AppView />;{{/if}}

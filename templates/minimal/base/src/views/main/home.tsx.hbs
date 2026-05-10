@@ -1,0 +1,438 @@
+{{#if hasElectrobunRpc}}
+import { useEffect, useState } from "react";
+{{else}}
+import { useState } from "react";
+{{/if}}
+import { APP_NAME } from "../../shared/constants";
+{{#if hasElectrobunRpc}}
+import type * as Shared from "../../shared/types";
+import { rpc } from "./lib/rpc";
+{{/if}}
+
+const launchSteps = [
+  {
+    accent: "lime",
+    command: "{{homeFilePath}}",
+    detail: "Replace this file with the workflow your users repeat.",
+    id: "loop",
+    label: "Shape the loop",
+  },
+  {
+    accent: "cyan",
+    command: "src/bun/rpc/router.ts",
+    detail: "Expose the native actions that make the interface feel local.",
+    id: "runtime",
+    label: "Wire the bridge",
+  },
+  {
+    accent: "orange",
+    command: "{{#if hasDatabase}}src/bun/db/client.ts{{else}}src/shared/types.ts{{/if}}",
+    detail: "Promote temporary state into typed records, settings, or files.",
+    id: "state",
+    label: "Anchor state",
+  },
+  {
+    accent: "ink",
+    command: "{{commands.build}}",
+    detail: "Package the first build and walk through a real session.",
+    id: "ship",
+    label: "Cut a build",
+  },
+] as const;
+
+type LaunchStepId = (typeof launchSteps)[number]["id"];
+
+export const Home = () => {
+  const [completedSteps, setCompletedSteps] = useState<
+    ReadonlySet<LaunchStepId>
+  >(() => new Set<LaunchStepId>());
+  const [activeStepId, setActiveStepId] = useState<LaunchStepId>("loop");
+{{#if hasElectrobunRpc}}
+  const [environment, setEnvironment] = useState<Shared.AppEnvironment | null>(
+    null,
+  );
+{{/if}}
+{{#if hasAppLock}}
+  const [unlockInput, setUnlockInput] = useState("");
+  const [isUnlocked, setIsUnlocked] = useState(false);
+{{/if}}
+{{#if hasRpcExample}}
+  const [greeting, setGreeting] = useState("Connecting to Bun runtime…");
+{{/if}}
+{{#if hasElectrobunRpc}}
+{{#if hasDatabase}}
+  const [database, setDatabase] = useState<Shared.DatabaseStatus | null>(null);
+{{/if}}
+{{#if hasSettings}}
+  const [settings, setSettings] = useState<Shared.SettingsStatus | null>(null);
+  const [isSavingSetting, setIsSavingSetting] = useState(false);
+{{/if}}
+{{#if hasNativeFileDialogs}}
+  const [selectedPaths, setSelectedPaths] = useState<Array<string>>([]);
+  const [isOpeningFileDialog, setIsOpeningFileDialog] = useState(false);
+{{/if}}
+{{/if}}
+{{#if hasElectrobunRpc}}
+  const isReady = environment !== null;
+{{else}}
+  const isReady = true;
+{{/if}}
+  const completedCount = completedSteps.size;
+  const totalSteps = launchSteps.length;
+  const progressPct = Math.round((completedCount / totalSteps) * 100);
+  const progressStyle = { width: `${progressPct}%` };
+{{#if hasElectrobunRpc}}
+
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+      const environmentRequest = rpc.request.getEnvironment(null);
+{{#if hasRpcExample}}
+      const greetingRequest = rpc.request.greet({ name: APP_NAME });
+{{/if}}
+{{#if hasDatabase}}
+      const databaseRequest = rpc.request.getDatabaseStatus(null);
+{{/if}}
+{{#if hasSettings}}
+      const settingsRequest = rpc.request.getSettingsStatus(null);
+{{/if}}
+
+      const environmentResult = await environmentRequest;
+{{#if hasRpcExample}}
+      const greetingResult = await greetingRequest;
+{{/if}}
+{{#if hasDatabase}}
+      const databaseResult = await databaseRequest;
+{{/if}}
+{{#if hasSettings}}
+      const settingsResult = await settingsRequest;
+{{/if}}
+
+      if (!mounted) {
+        return;
+      }
+
+      setEnvironment(environmentResult);
+{{#if hasRpcExample}}
+      setGreeting(greetingResult.greeting);
+{{/if}}
+{{#if hasDatabase}}
+      setDatabase(databaseResult);
+{{/if}}
+{{#if hasSettings}}
+      setSettings(settingsResult);
+{{/if}}
+{{#if hasRpcExample}}
+      rpc.send.logToBun({ message: "Renderer loaded and called Bun RPC." });
+{{/if}}
+    };
+
+    void load();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+{{#if hasSettings}}
+
+  const saveSetting = async (key: string, value: Shared.SettingValue) => {
+    setIsSavingSetting(true);
+
+    try {
+      setSettings(await rpc.request.updateSetting({ key, value }));
+    } finally {
+      setIsSavingSetting(false);
+    }
+  };
+{{/if}}
+{{#if hasNativeFileDialogs}}
+
+  const openNativeFileDialog = async () => {
+    setIsOpeningFileDialog(true);
+
+    try {
+      const result = await rpc.request.openFileDialog(null);
+      setSelectedPaths(result.paths);
+    } finally {
+      setIsOpeningFileDialog(false);
+    }
+  };
+{{/if}}
+{{/if}}
+
+  const toggleStep = (stepId: LaunchStepId) => {
+    setActiveStepId(stepId);
+    setCompletedSteps((prev) => {
+      const next = new Set(prev);
+
+      if (next.has(stepId)) {
+        next.delete(stepId);
+      } else {
+        next.add(stepId);
+      }
+
+      return next;
+    });
+  };
+{{#if hasAppLock}}
+
+  if (!isUnlocked) {
+    return (
+      <main className="shell lock-shell">
+        <div className="lock-card">
+          <div className="lock-header">
+            <span className="app-dot" aria-hidden="true" />
+            <p className="lock-eyebrow">Local session</p>
+          </div>
+          <h1>{APP_NAME}</h1>
+          <p className="lock-lede">
+            Enter the app name to open your desktop workspace.
+          </p>
+          <form
+            className="lock-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setIsUnlocked(
+                unlockInput.trim().toLowerCase() === APP_NAME.toLowerCase(),
+              );
+            }}
+          >
+            <input
+              aria-label="Unlock phrase"
+              onChange={(event) => setUnlockInput(event.target.value)}
+              placeholder={APP_NAME}
+              type="password"
+              value={unlockInput}
+            />
+            <button type="submit">Unlock</button>
+          </form>
+        </div>
+      </main>
+    );
+  }
+{{/if}}
+
+  return (
+    <main className="shell">
+{{#if hasHiddenInsetTitlebar}}
+      <div
+        aria-hidden="true"
+        className="window-drag-bar electrobun-webkit-app-region-drag"
+      >
+        <span>{APP_NAME}</span>
+      </div>
+{{/if}}
+      <div className="workspace">
+        <header className="top-bar">
+          <div className="app-identity">
+            <span className="app-dot" aria-hidden="true" />
+            <span className="app-name-label">{APP_NAME}</span>
+          </div>
+          <div
+            className={`status-indicator${isReady ? " is-ready" : ""}`}
+            role="status"
+          >
+            <span className="status-dot" aria-hidden="true" />
+{{#if hasElectrobunRpc}}
+            {isReady ? "Runtime connected" : "Connecting"}
+{{else}}
+            Renderer ready
+{{/if}}
+          </div>
+        </header>
+
+        <section className="hero">
+          <div className="hero-text">
+            <p className="hero-overline">Electrobun Stack</p>
+            <h1>{APP_NAME}</h1>
+{{#if hasRpcExample}}
+            <p className="hero-lede">{greeting}</p>
+{{else}}
+{{#if hasElectrobunRpc}}
+            <p className="hero-lede">
+              A local-first desktop app with React, a typed native runtime
+              bridge, and {{#if hasRouter}}{{routerDisplayName}}{{else}}direct view rendering{{/if}}.
+              Your first workflow is one file away.
+            </p>
+{{else}}
+            <p className="hero-lede">
+              A local React desktop surface with {{#if hasRouter}}router wiring{{else}}direct view rendering{{/if}} and
+              enough structure to build the first real workflow.
+            </p>
+{{/if}}
+{{/if}}
+            <div className="hero-progress">
+              <div
+                aria-label={`Launch progress: ${progressPct}%`}
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={progressPct}
+                className="progress-track"
+                role="progressbar"
+              >
+                <div className="progress-fill" style={progressStyle} />
+              </div>
+              <span className="progress-label">
+                {completedCount}/{totalSteps} done
+              </span>
+            </div>
+          </div>
+
+          <aside className="arch-panel" aria-label="Stack architecture">
+            <div className="arch-layer">
+              <div className="arch-layer-info">
+                <span className="arch-layer-name">React Renderer</span>
+                <span className="arch-layer-tech">{{routerDisplayName}}</span>
+              </div>
+              <span className="arch-tag view-tag">View</span>
+            </div>
+
+            <div className="arch-layer">
+              <div className="arch-layer-info">
+                <span className="arch-layer-name">RPC Bridge</span>
+                <span className="arch-layer-tech">Electrobun</span>
+              </div>
+{{#if hasElectrobunRpc}}
+              <span className="arch-tag bridge-tag">
+                {isReady ? "Online" : "Pending"}
+              </span>
+{{else}}
+              <span className="arch-tag bridge-tag">Static</span>
+{{/if}}
+            </div>
+
+            <div className="arch-layer">
+              <div className="arch-layer-info">
+                <span className="arch-layer-name">Bun Runtime</span>
+{{#if hasElectrobunRpc}}
+                <span className="arch-layer-tech">
+                  {environment?.platform ?? "Native"}
+                </span>
+{{else}}
+                <span className="arch-layer-tech">Native</span>
+{{/if}}
+              </div>
+              <span className="arch-tag runtime-tag">Bun</span>
+            </div>
+{{#if hasDatabase}}
+
+            <div className="arch-layer">
+              <div className="arch-layer-info">
+                <span className="arch-layer-name">Database</span>
+                <span className="arch-layer-tech">
+                  {database
+                    ? `${database.driver} · ${database.records} rows`
+                    : "SQLite"}
+                </span>
+              </div>
+              <span className="arch-tag db-tag">SQLite</span>
+            </div>
+{{/if}}
+{{#if hasSettings}}
+
+            <div className="arch-settings">
+              <span className="arch-settings-label">Theme</span>
+              <fieldset aria-label="Theme setting" className="segmented">
+                {(["system", "light", "dark"] as const).map((theme) => (
+                  <button
+                    className={
+                      settings?.values["app.theme"] === theme ? "is-active" : ""
+                    }
+                    disabled={isSavingSetting}
+                    key={theme}
+                    onClick={() => void saveSetting("app.theme", theme)}
+                    type="button"
+                  >
+                    {theme}
+                  </button>
+                ))}
+              </fieldset>
+            </div>
+{{/if}}
+{{#if hasNativeFileDialogs}}
+
+            <div className="native-actions">
+              <div>
+                <span className="native-actions-label">Native utility</span>
+                <p className="native-actions-copy">
+                  Open a local file or folder through Bun.
+                </p>
+              </div>
+              <button
+                className="native-actions-button"
+                disabled={isOpeningFileDialog}
+                onClick={() => void openNativeFileDialog()}
+                type="button"
+              >
+                {isOpeningFileDialog ? "Opening" : "Choose"}
+              </button>
+              {selectedPaths.length > 0 && (
+                <code className="native-path">{selectedPaths[0]}</code>
+              )}
+            </div>
+{{/if}}
+          </aside>
+        </section>
+
+        <section aria-label="Launch sequence" className="steps-section">
+          {launchSteps.map((step, index) => {
+            const isDone = completedSteps.has(step.id);
+            const isActive = activeStepId === step.id;
+
+            return (
+              <button
+                aria-pressed={isDone}
+                className={`step-card is-${step.accent}${isDone ? " is-done" : ""}${isActive ? " is-active" : ""}`}
+                key={step.id}
+                onClick={() => toggleStep(step.id)}
+                type="button"
+              >
+                <span className="step-num">
+                  {isDone ? "✓" : `0${index + 1}`}
+                </span>
+                <strong className="step-label">{step.label}</strong>
+                <span className="step-detail">{step.detail}</span>
+                <code className="step-cmd">{step.command}</code>
+              </button>
+            );
+          })}
+        </section>
+
+        <footer className="stack-footer">
+          <span className="stack-label">Stack</span>
+          <div className="stack-chips">
+            <span className="stack-chip">React</span>
+{{#if hasRouter}}
+            <span className="stack-chip">{{routerDisplayName}}</span>
+{{/if}}
+            <span className="stack-chip">{{#if hasTailwind}}Tailwind CSS{{else}}Plain CSS{{/if}}</span>
+{{#if hasTanstackQuery}}
+            <span className="stack-chip">TanStack Query</span>
+{{/if}}
+{{#if hasElectrobunRpc}}
+            <span className="stack-chip">Electrobun RPC</span>
+{{/if}}
+{{#if hasDatabase}}
+            <span className="stack-chip">SQLite</span>
+{{/if}}
+{{#if hasSettings}}
+            <span className="stack-chip">Settings</span>
+{{/if}}
+{{#if hasNativeFileDialogs}}
+            <span className="stack-chip">File dialogs</span>
+{{/if}}
+            <span className="stack-chip">Bun</span>
+          </div>
+{{#if hasElectrobunRpc}}
+          {environment?.startedAt && (
+            <span className="stack-started">
+              Started {environment.startedAt}
+            </span>
+          )}
+{{/if}}
+        </footer>
+      </div>
+    </main>
+  );
+};
