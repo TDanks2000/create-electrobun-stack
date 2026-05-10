@@ -1,4 +1,12 @@
-import { join, relative } from "node:path";
+import {
+  copyFile as copyStaticFile,
+  mkdir,
+  readdir,
+  readFile,
+  stat,
+  writeFile,
+} from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
 import Handlebars from "handlebars";
 import { collapseStringArrays } from "./json-format";
 
@@ -80,16 +88,30 @@ const copyFile = async (
   const extension = getExtension(source);
 
   if (textExtensions.has(extension)) {
-    const content = await Bun.file(source).text();
-    await Bun.write(
+    const content = await readFile(source, "utf8");
+    await writeFile(
       target,
       prepareTextContent(source, content, replacements, templateData),
     );
     return;
   }
 
-  await Bun.write(target, Bun.file(source));
+  await copyStaticFile(source, target);
 };
+
+async function* walkDirectory(directory: string): AsyncGenerator<string> {
+  const entries = await readdir(directory, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+
+    yield path;
+
+    if (entry.isDirectory()) {
+      yield* walkDirectory(path);
+    }
+  }
+}
 
 export const copyTemplate = async ({
   replacements,
@@ -97,29 +119,22 @@ export const copyTemplate = async ({
   targetDirectory,
   templateData = {},
 }: CopyTemplateOptions): Promise<void> => {
-  const glob = new Bun.Glob("**/*");
+  await mkdir(targetDirectory, { recursive: true });
 
-  await Bun.$`mkdir -p ${targetDirectory}`.quiet();
-
-  for await (const entry of glob.scan({
-    cwd: sourceDirectory,
-    dot: true,
-    onlyFiles: false,
-  })) {
-    const source = join(sourceDirectory, entry);
+  for await (const source of walkDirectory(sourceDirectory)) {
     const relativeTarget = replacePlaceholders(
       relative(sourceDirectory, source),
       replacements,
     ).replace(/\.hbs$/, "");
     const target = join(targetDirectory, relativeTarget);
-    const stat = await Bun.file(source).stat();
+    const sourceStat = await stat(source);
 
-    if (stat.isDirectory()) {
-      await Bun.$`mkdir -p ${target}`.quiet();
+    if (sourceStat.isDirectory()) {
+      await mkdir(target, { recursive: true });
       continue;
     }
 
-    await Bun.$`mkdir -p ${join(target, "..")}`.quiet();
+    await mkdir(dirname(target), { recursive: true });
     await copyFile(source, target, replacements, templateData);
   }
 };

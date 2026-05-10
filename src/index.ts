@@ -1,5 +1,5 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 import { runCli } from "./cli";
 
-await runCli(Bun.argv.slice(2));
+await runCli(process.argv.slice(2));

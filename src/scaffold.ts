@@ -1,5 +1,6 @@
-import { readdir, stat } from "node:fs/promises";
+import { readdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   type CesManifest,
   createCesManifest,
@@ -35,7 +36,7 @@ export type AddToProjectOptions = {
 };
 
 const templateRoot = join(
-  dirname(new URL(import.meta.url).pathname),
+  dirname(fileURLToPath(import.meta.url)),
   "..",
   "templates",
 );
@@ -249,7 +250,7 @@ export const scaffoldProject = async (
     });
   }
 
-  await Bun.write(
+  await writeFile(
     join(options.targetDirectory, "ces.json"),
     serializeCesManifest(
       createCesManifest({
@@ -315,7 +316,7 @@ export const addToProject = async (
     });
   }
 
-  await Bun.write(
+  await writeFile(
     join(options.targetDirectory, "ces.json"),
     serializeCesManifest(
       createCesManifest({

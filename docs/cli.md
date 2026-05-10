@@ -3,8 +3,11 @@
 ## Usage
 
 ```bash
-bunx create-electrobun-stack <project-name> [options]
-bunx create-electrobun-stack add [options]
+npm create electrobun-stack@latest <project-name> [options]
+npx create-electrobun-stack@latest <project-name> [options]
+bunx --bun create-electrobun-stack@latest <project-name> [options]
+create-electrobun-stack <project-name> [options]
+create-electrobun-stack add [options]
 ```
 
 Local development inside this repository:
@@ -13,6 +16,8 @@ Local development inside this repository:
 bun run src/index.ts <project-name> [options]
 bun run src/index.ts add --cwd <project-directory> [options]
 ```
+
+The npm package exposes `create-electrobun-stack` from the built `dist/index.mjs` file. Plain npm and npx execution require Node.js `>=20.19.0`; `bunx --bun create-electrobun-stack@latest` forces Bun to run the same bin. Use `npm install -g create-electrobun-stack` if you want the global command.
 
 ## Commands
 

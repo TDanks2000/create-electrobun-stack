@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { intro, note, outro, spinner } from "@clack/prompts";
 import { type CesManifest, stackOptionsFromCesManifest } from "./manifest";
@@ -512,15 +513,21 @@ const readCesManifest = async (
   targetDirectory: string,
 ): Promise<CesManifest> => {
   const manifestPath = join(targetDirectory, "ces.json");
-  const manifestFile = Bun.file(manifestPath);
+  let manifestText: string;
 
-  if (!(await manifestFile.exists())) {
-    throw new Error(
-      `Could not find ces.json in ${targetDirectory}. Run add inside an existing create-electrobun-stack project or pass --cwd <project-directory>.`,
-    );
+  try {
+    manifestText = await readFile(manifestPath, "utf8");
+  } catch (error: unknown) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      throw new Error(
+        `Could not find ces.json in ${targetDirectory}. Run add inside an existing create-electrobun-stack project or pass --cwd <project-directory>.`,
+      );
+    }
+
+    throw error;
   }
 
-  const manifest = (await manifestFile.json()) as unknown;
+  const manifest = JSON.parse(manifestText) as unknown;
 
   if (!isRecord(manifest)) {
     throw new Error(`ces.json is not a valid manifest: ${manifestPath}`);

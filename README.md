@@ -1,5 +1,10 @@
 # create-electrobun-stack
 
+[![npm version](https://img.shields.io/npm/v/create-electrobun-stack.svg)](https://www.npmjs.com/package/create-electrobun-stack)
+[![npm downloads](https://img.shields.io/npm/dm/create-electrobun-stack.svg)](https://www.npmjs.com/package/create-electrobun-stack)
+[![Node version](https://img.shields.io/node/v/create-electrobun-stack.svg)](https://www.npmjs.com/package/create-electrobun-stack)
+[![Bun >=1.3.0](https://img.shields.io/badge/Bun-%3E%3D1.3.0-000?logo=bun&logoColor=white)](https://bun.sh)
+
 Scaffold a production-minded Electrobun desktop app with Bun, React, TypeScript, Vite, Biome, typed Electrobun RPC, and a small set of optional integrations that can be enabled at create time or added later.
 
 The generator is intentionally explicit: every selected stack option is written to `ces.json`, the generated project README explains what was scaffolded, and the `add` command can use that manifest to enable missing features without asking you to remember the original command.
@@ -7,13 +12,16 @@ The generator is intentionally explicit: every selected stack option is written 
 ## Quick Start
 
 ```bash
-bunx create-electrobun-stack my-app
+npm create electrobun-stack@latest my-app
 cd my-app
 bun run dev
 ```
 
+You can also run it with `npx create-electrobun-stack@latest my-app`, `bunx --bun create-electrobun-stack@latest my-app`, or install it globally with `npm install -g create-electrobun-stack`.
+
 Requirements:
 
+- Node.js `>=20.19.0` to run the published CLI.
 - Bun `>=1.3.0`.
 - A desktop OS supported by Electrobun for running or building generated apps.
 
@@ -139,9 +147,13 @@ Some options add commands. For example, `--addons turborepo` adds `bun run check
 
 ```bash
 bun install
+bun run build
 bun test
 bun run typecheck
 bun run lint
+npm pack --dry-run
 ```
 
 The CLI entrypoint is `src/index.ts`. Stack choices live in `src/options.ts`, manifest generation lives in `src/manifest.ts`, and template rendering lives in `src/scaffold.ts`.
+
+The published npm package ships the built CLI from `dist/index.mjs` plus `templates/` and `docs/`. Run `bun run build` before local package checks; `npm pack --dry-run` also runs the build through `prepack`. The bin keeps a Node shebang for npm compatibility; `bunx --bun create-electrobun-stack@latest` forces Bun to run the same built CLI.

@@ -3,19 +3,42 @@
   "version": "0.1.1",
   "description": "Scaffold a modern Electrobun desktop app.",
   "type": "module",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "bin": {
-    "create-electrobun-stack": "./src/index.ts"
+    "create-electrobun-stack": "dist/index.mjs"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TDanks2000/create-electrobun-stack.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TDanks2000/create-electrobun-stack/issues"
+  },
+  "homepage": "https://github.com/TDanks2000/create-electrobun-stack#readme",
+  "keywords": [
+    "bun",
+    "create",
+    "desktop",
+    "electrobun",
+    "react",
+    "scaffold",
+    "typescript",
+    "vite"
+  ],
   "scripts": {
     "start": "bun run src/index.ts",
+    "build": "tsdown --config-loader native",
+    "pack:check": "npm pack --dry-run",
+    "prepack": "bun run build",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome check --write ."
   },
   "files": [
+    "dist",
     "docs",
-    "src",
     "templates"
   ],
   "dependencies": {
@@ -25,9 +48,11 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
     "@types/bun": "^1.3.8",
+    "@types/node": "^24.10.2",
+    "tsdown": "^0.22.0",
     "typescript": "^5.9.3"
   },
   "engines": {
-    "bun": ">=1.3.0"
+    "node": ">=20.19.0"
   }
 }
