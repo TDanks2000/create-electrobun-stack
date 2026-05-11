@@ -4,7 +4,7 @@ This plan moves `create-electrobun-stack` from the current pre-1.0 package to a 
 
 ## Current Baseline
 
-- Latest published npm version: `0.1.1`.
+- Latest stable npm version before the final V1 release: `0.1.1`; latest prerelease: `1.0.0-rc.5` on the `next` dist-tag.
 - The package builds to `dist/index.mjs` with `tsdown`.
 - The CLI package includes `dist`, `docs`, and `templates`.
 - CI runs lint, typecheck, tests, build, and package dry-run.
@@ -139,7 +139,7 @@ Exit criteria:
 
 Goal: make npm release boring.
 
-Status: completed for local and workflow dry-run gates. `bun run pack:check` verifies package contents, and `bun run pack:smoke` packs the tarball, installs it into a temp consumer project, checks `--version`, dry-runs a scaffold, and scaffolds a real app without installing generated dependencies. The publish workflow supports GitHub releases and `workflow_dispatch` dry runs, resolves prerelease publishes to the `next` npm dist-tag by default, and uses npm trusted publishing through GitHub Actions OIDC instead of long-lived npm token secrets. The `Publish` workflow dry run for `a9777406d914a43c89376705f4ffdb5927961fda` passed in GitHub Actions run `25640509300`; `Publish to npm` was skipped and `Skip publish` succeeded.
+Status: completed. `bun run pack:check` verifies package contents, and `bun run pack:smoke` packs the tarball, installs it into a temp consumer project, checks `--version`, dry-runs a scaffold, and scaffolds a real app without installing generated dependencies. The publish workflow supports GitHub releases and `workflow_dispatch` dry runs, resolves prerelease publishes to the `next` npm dist-tag by default, and uses npm trusted publishing through GitHub Actions OIDC instead of long-lived npm token secrets. The trusted publishing workflow successfully published `1.0.0-rc.5` to npm's `next` dist-tag from GitHub Actions run `25677110286`.
 
 - Confirm `npm pack --dry-run` includes only intended files.
 - Add package smoke tests against the packed tarball:
@@ -187,12 +187,15 @@ Exit criteria:
 
 Goal: publish a real prerelease and use it like a user.
 
-- Bump to a fresh RC version. The current prepared candidate is `1.0.0-rc.5` because `v1.0.0-rc.4` proved the release workflow gates but exposed npm trusted publishing package metadata that needed to match the GitHub repository exactly.
-- Publish under an npm prerelease tag, for example `next`.
-- Test the published prerelease with:
+Status: completed. `1.0.0-rc.5` is published under the npm `next` dist-tag, and the published package was tested from `/tmp/ces-rc-published-smoke` with:
+
   - `npm create electrobun-stack@next my-app`,
   - `npx create-electrobun-stack@next my-app`,
   - `bunx --bun create-electrobun-stack@next my-app`.
+
+- Bump to a fresh RC version when another prerelease is needed.
+- Publish prereleases under an npm prerelease tag, for example `next`.
+- Test the published prerelease with the commands above.
 - Generate projects on at least macOS, Linux, and Windows if contributors have access.
 - Track any RC findings as GitHub issues.
 - Avoid new V1 scope unless it fixes correctness, docs, or release confidence.

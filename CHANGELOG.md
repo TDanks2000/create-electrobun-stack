@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0
+
+### Added
+
+- Marks the V1 CLI contract as stable after the published `1.0.0-rc.5` passed npm `next` smoke tests with `npm create`, `npx`, and `bunx --bun`.
+- Ships the documented Electrobun stack generator with the V1 option matrix, manifest compatibility policy, generated-project validation, package smoke tests, and trusted npm publishing workflow.
+
+### Changed
+
+- Promotes manifest examples and schema URLs from the prerelease package to `1.0.0`.
+
+### Migration Notes
+
+- `0.x` generated projects should keep their checked-in `ces.json` file. Future additive features should be applied with `create-electrobun-stack add` where possible.
+- `standard` and `full` remain accepted template profile names for compatibility, but they intentionally share the V1 `minimal` template source until they have distinct, tested behavior.
+- The V1 manifest contract is additive. Breaking manifest migrations require a documented migration path before release.
+
 ## 1.0.0-rc.5
 
 ### Changed
