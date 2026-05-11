@@ -139,7 +139,7 @@ Exit criteria:
 
 Goal: make npm release boring.
 
-Status: completed for local and workflow dry-run gates. `bun run pack:check` verifies package contents, and `bun run pack:smoke` packs the tarball, installs it into a temp consumer project, checks `--version`, dry-runs a scaffold, and scaffolds a real app without installing generated dependencies. The publish workflow supports GitHub releases and `workflow_dispatch` dry runs, and resolves prerelease publishes to the `next` npm dist-tag by default. The `Publish` workflow dry run for `a9777406d914a43c89376705f4ffdb5927961fda` passed in GitHub Actions run `25640509300`; `Publish to npm` was skipped and `Skip publish` succeeded.
+Status: completed for local and workflow dry-run gates. `bun run pack:check` verifies package contents, and `bun run pack:smoke` packs the tarball, installs it into a temp consumer project, checks `--version`, dry-runs a scaffold, and scaffolds a real app without installing generated dependencies. The publish workflow supports GitHub releases and `workflow_dispatch` dry runs, resolves prerelease publishes to the `next` npm dist-tag by default, and uses npm trusted publishing through GitHub Actions OIDC instead of long-lived npm token secrets. The `Publish` workflow dry run for `a9777406d914a43c89376705f4ffdb5927961fda` passed in GitHub Actions run `25640509300`; `Publish to npm` was skipped and `Skip publish` succeeded.
 
 - Confirm `npm pack --dry-run` includes only intended files.
 - Add package smoke tests against the packed tarball:
@@ -148,7 +148,7 @@ Status: completed for local and workflow dry-run gates. `bun run pack:check` ver
   - scaffold with `--dry-run`,
   - scaffold a real app without dependency install.
 - Decide whether V1 publishes only from GitHub releases or also supports manual `workflow_dispatch`.
-- Ensure `NPM_TOKEN` and provenance settings are configured in GitHub.
+- Configure npm trusted publishing for GitHub Actions with repository `TDanks2000/create-electrobun-stack` and workflow filename `publish.yml`.
 - Add release notes guidance for `0.x -> 1.0.0`.
 - Add a `CHANGELOG.md` before the first release candidate.
 
