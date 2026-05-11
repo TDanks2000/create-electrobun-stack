@@ -187,7 +187,7 @@ Exit criteria:
 
 Goal: publish a real prerelease and use it like a user.
 
-- Bump to a fresh RC version. The current prepared candidate is `1.0.0-rc.2` because `v1.0.0-rc.1` was tagged before the Phase 1-5 corrections.
+- Bump to a fresh RC version. The current prepared candidate is `1.0.0-rc.3` because `v1.0.0-rc.2` was released before the corrected prerelease npm dist-tag workflow could publish.
 - Publish under an npm prerelease tag, for example `next`.
 - Test the published prerelease with:
   - `npm create electrobun-stack@next my-app`,

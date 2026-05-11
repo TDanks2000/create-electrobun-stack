@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-rc.3
+
+### Changed
+
+- Refreshes the V1 release candidate from the corrected publish workflow so prerelease publishes resolve to the npm `next` dist-tag by default.
+- Keeps the generated manifest examples aligned with the next prerelease version.
+
 ## 1.0.0-rc.2
 
 ### Changed
