@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-rc.4
+
+### Changed
+
+- Refreshes the V1 release candidate from the npm trusted publishing workflow that uses GitHub Actions OIDC instead of npm token secrets.
+- Updates the generated manifest examples for the new prerelease version.
+
 ## 1.0.0-rc.3
 
 ### Changed
