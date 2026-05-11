@@ -27,6 +27,7 @@ jobs:
   npm:
     name: npm
     runs-on: ubuntu-latest
+    environment: npm
 
     steps:
       - name: Checkout
@@ -41,7 +42,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
       - name: Verify trusted publishing toolchain
@@ -90,7 +90,7 @@ jobs:
 
       - name: Publish to npm
         if: github.event_name == 'release' || inputs.dry_run == false
-        run: npm publish --access public --tag "${{ steps.publish-tag.outputs.tag }}"
+        run: npm publish --provenance --access public --tag "${{ steps.publish-tag.outputs.tag }}"
 
       - name: Skip publish
         if: github.event_name == 'workflow_dispatch' && inputs.dry_run
