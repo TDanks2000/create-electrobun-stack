@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-rc.5
+
+### Changed
+
+- Refreshes the V1 release candidate after aligning package repository metadata with npm trusted publishing requirements.
+- Updates the generated manifest examples for the new prerelease version.
+
 ## 1.0.0-rc.4
 
 ### Changed

@@ -187,7 +187,7 @@ Exit criteria:
 
 Goal: publish a real prerelease and use it like a user.
 
-- Bump to a fresh RC version. The current prepared candidate is `1.0.0-rc.4` because `v1.0.0-rc.3` was tagged before the npm trusted publishing workflow landed.
+- Bump to a fresh RC version. The current prepared candidate is `1.0.0-rc.5` because `v1.0.0-rc.4` proved the release workflow gates but exposed npm trusted publishing package metadata that needed to match the GitHub repository exactly.
 - Publish under an npm prerelease tag, for example `next`.
 - Test the published prerelease with:
   - `npm create electrobun-stack@next my-app`,
