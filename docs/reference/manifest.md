@@ -23,10 +23,10 @@ Breaking manifest migrations require a documented migration path before release.
 
 ```json
 {
-  "$schema": "https://unpkg.com/create-electrobun-stack@1.0.0/docs/ces.schema.json",
-  "version": "1.0.0",
+  "$schema": "https://unpkg.com/create-electrobun-stack@1.1.0/docs/ces.schema.json",
+  "version": "1.1.0",
   "createdAt": "2026-05-10T00:00:00.000Z",
-  "reproducibleCommand": "bunx create-electrobun-stack@1.0.0 my-app --template minimal ...",
+  "reproducibleCommand": "bunx create-electrobun-stack@1.1.0 my-app --template minimal ...",
   "projectName": "my-app",
   "packageName": "my-app",
   "appIdentifier": "dev.electrobun.myapp",
@@ -61,16 +61,20 @@ Breaking manifest migrations require a documented migration path before release.
     "bunPackageManager": true,
     "bunRuntime": true,
     "bunTest": true,
+    "desktopSmokeTest": false,
     "drizzle": false,
     "editMenu": true,
     "electrobun": true,
     "electrobunRpc": true,
     "databaseSettings": false,
     "hiddenInsetTitlebar": false,
+    "jsonDatabase": false,
     "jsonSettings": false,
+    "nativeClipboard": false,
     "nativeFileDialogs": false,
     "localNavigationGuard": true,
     "plainCss": false,
+    "preact": false,
     "react": true,
     "reactRouter": false,
     "rpcExample": true,
@@ -99,7 +103,7 @@ Breaking manifest migrations require a documented migration path before release.
 | `packageName` | Generated package name. |
 | `appIdentifier` | Electrobun reverse-DNS app identifier. |
 | `template` | Selected template profile. |
-| `frontend` | Renderer frontend list. Currently `["react"]`. |
+| `frontend` | Renderer frontend list. Currently `["react"]` or `["preact"]`. |
 | `runtime` | Runtime selection. Currently `bun`. |
 | `router` | Renderer routing selection. |
 | `query` | Renderer async-state selection. |
@@ -129,22 +133,26 @@ Breaking manifest migrations require a documented migration path before release.
 
 `features` is intentionally redundant with top-level fields. It makes generated projects easy to inspect and gives the `add` command stable feature checks.
 
-Generated V1 feature booleans include:
+Generated feature booleans include:
 
 - `appLock`
 - `biome`
 - `bunPackageManager`
 - `bunRuntime`
 - `bunTest`
+- `desktopSmokeTest`
 - `drizzle`
 - `editMenu`
 - `electrobunRpc`
 - `databaseSettings`
 - `hiddenInsetTitlebar`
+- `jsonDatabase`
 - `jsonSettings`
+- `nativeClipboard`
 - `nativeFileDialogs`
 - `localNavigationGuard`
 - `plainCss`
+- `preact`
 - `react`
 - `reactRouter`
 - `rpcExample`

@@ -1,7 +1,7 @@
 create-electrobun-stack LLM guide
 
 Purpose:
-Scaffold an Electrobun desktop app with Bun, React, TypeScript, Vite, Biome, typed Electrobun RPC, and optional integrations. The generated project includes ces.json so future tooling can understand and expand the stack.
+Scaffold an Electrobun desktop app with Bun, React or Preact, TypeScript, Vite, Biome, typed Electrobun RPC, and optional integrations. The generated project includes ces.json so future tooling can understand and expand the stack.
 
 Primary commands:
 
@@ -50,7 +50,7 @@ Default stack:
 
 Generated app:
 - Bun native process in src/bun.
-- React renderer in src/views/main.
+- React or Preact renderer in src/views/main.
 - Shared types in src/shared.
 - Typed RPC contract in src/shared/rpc/schema.ts when --api electrobun-rpc is selected.
 - ces.json manifest at project root.
@@ -71,6 +71,7 @@ Option behavior:
 - --router tanstack-router adds TanStack Router file routes, @tanstack/router-plugin, src/views/main/routes, and routeTree.gen.ts.
 - --router react-router adds React Router with HashRouter.
 - --router none renders Home directly.
+- --frontend preact adds a Preact renderer with @preact/preset-vite. It currently requires --router none, --query none, and --ui none.
 - --query tanstack-query adds @tanstack/react-query and QueryClientProvider.
 - --styling tailwindcss adds Tailwind CSS v4 and @tailwindcss/vite.
 - --styling css omits Tailwind dependencies.
@@ -81,27 +82,32 @@ Option behavior:
 - --examples none omits demo calls and generated README RPC example section.
 - --navigation local-only adds Electrobun navigation rules for bundled views.
 - --native-utils file-dialogs adds a typed RPC request backed by Electrobun Utils.openFileDialog.
+- --native-utils clipboard adds typed RPC requests for Utils clipboard read/write/clear.
+- --native-utils desktop-kit enables file dialogs and clipboard utilities together.
 - --window-style hidden-inset uses Electrobun hiddenInset titlebar and adds a draggable renderer header.
 - --app-menu edit adds an Electrobun ApplicationMenu with standard Edit roles.
 - --auth app-lock adds a local renderer unlock screen. It is not remote auth.
 - --database sqlite adds a Bun SQLite client.
+- --database json-file adds a local JSON record store at data/app-db.json.
 - --orm drizzle adds Drizzle schema/config and requires SQLite.
-- --db-setup seed adds starter SQLite metadata and requires SQLite.
+- --db-setup seed adds starter database metadata and requires sqlite or json-file.
 - --settings json adds data/settings.json persistence and requires Electrobun RPC.
 - --settings database stores settings in SQLite and requires Electrobun RPC plus SQLite.
 - --package-manager bun|npm|pnpm|yarn controls install/run command text and package manager metadata.
 - --testing bun adds bun test and tests/manifest.test.ts.
+- --testing desktop-smoke adds bun test, tests/manifest.test.ts, and tests/desktop-smoke.test.ts with mocked Electrobun launch verification.
 - --testing none omits tests.
 - --addons turborepo adds turbo.json and a check script.
 
 Invalid combinations:
 - Drizzle requires SQLite.
-- Seed data requires SQLite.
+- Seed data requires a generated database.
 - Database-backed settings require SQLite.
 - Settings require Electrobun RPC.
-- Native file dialogs require Electrobun RPC.
+- Native utility examples require Electrobun RPC.
 - RPC examples require Electrobun RPC.
 - shadcn requires Tailwind CSS.
+- Preact requires --router none, --query none, and --ui none.
 
 Add command:
 - Reads ces.json from cwd or --cwd.
@@ -111,10 +117,10 @@ Add command:
 - Installs dependencies unless --no-install is passed.
 - Infers prerequisites:
   - --orm drizzle -> --database sqlite
-  - --db-setup seed -> --database sqlite
+  - --db-setup seed -> --database json-file when no database is present
   - --settings database -> --database sqlite and --api electrobun-rpc
   - --settings json -> --api electrobun-rpc
-  - --native-utils file-dialogs -> --api electrobun-rpc
+  - --native-utils file-dialogs|clipboard|desktop-kit -> --api electrobun-rpc
   - --examples rpc -> --api electrobun-rpc
   - --ui shadcn -> --styling tailwindcss
 - Does not remove features or switch package managers/build settings.
@@ -126,7 +132,7 @@ Manifest:
 - Prefer create-electrobun-stack add over hand-editing ces.json.
 
 Release validation:
-- bun run validate:render scaffolds the representative V1 matrix and runs Biome against rendered projects.
+- bun run validate:render scaffolds the representative validation matrix and runs Biome against rendered projects.
 - bun run validate installs each representative generated project and runs typecheck, lint, tests when present, and build.
 - bun run pack:check runs npm pack --dry-run.
 - bun run pack:smoke packs the tarball, installs it into a temp consumer project, checks --version, dry-runs a scaffold, and scaffolds a real app without dependency install.
@@ -143,4 +149,4 @@ Important paths in this repository:
 - templates/minimal/options contains feature overlays.
 - tests/cli.test.ts is the main behavior test suite.
 
-Do not invent Electrobun APIs when explaining the generated app. The starter uses Electrobun's typed RPC, BrowserWindow/BrowserView APIs, ApplicationMenu roles, navigation rules, and Utils.openFileDialog where selected.
+Do not invent Electrobun APIs when explaining the generated app. The starter uses Electrobun's typed RPC, BrowserWindow/BrowserView APIs, ApplicationMenu roles, navigation rules, Utils.openFileDialog, and Utils clipboard helpers where selected.

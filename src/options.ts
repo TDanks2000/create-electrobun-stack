@@ -3,10 +3,10 @@ import { formatList } from "./utils/format";
 type ScaffoldStackOptions = {
   addons: "none" | "turborepo";
   auth: "none" | "app-lock";
-  database: "none" | "sqlite";
+  database: "none" | "sqlite" | "json-file";
   dbSetup: "none" | "seed";
   examples: "rpc" | "none";
-  frontend: "react";
+  frontend: "react" | "preact";
   orm: "none" | "drizzle";
   packageManager: "bun" | "npm" | "pnpm" | "yarn";
   query: "none" | "tanstack-query";
@@ -14,7 +14,7 @@ type ScaffoldStackOptions = {
   runtime: "bun";
   settings: "none" | "json" | "database";
   styling: "css" | "tailwindcss";
-  testing: "bun" | "none";
+  testing: "bun" | "desktop-smoke" | "none";
   ui: "none" | "shadcn";
 };
 
@@ -24,7 +24,7 @@ export type ElectrobunFeatureOptions = {
   buildEnv: "dev" | "canary" | "stable";
   buildTargets: "current" | "all";
   navigation: "local-only" | "none";
-  nativeUtils: "none" | "file-dialogs";
+  nativeUtils: "none" | "file-dialogs" | "clipboard" | "desktop-kit";
   windowStyle: "native" | "hidden-inset";
 };
 
@@ -71,10 +71,10 @@ export const defaultStackOptions: StackOptions = {
 const scaffoldStackOptionChoices = {
   addons: ["none", "turborepo"],
   auth: ["none", "app-lock"],
-  database: ["none", "sqlite"],
+  database: ["none", "sqlite", "json-file"],
   dbSetup: ["none", "seed"],
   examples: ["rpc", "none"],
-  frontend: ["react"],
+  frontend: ["react", "preact"],
   orm: ["none", "drizzle"],
   packageManager: ["bun", "npm", "pnpm", "yarn"],
   query: ["none", "tanstack-query"],
@@ -82,7 +82,7 @@ const scaffoldStackOptionChoices = {
   runtime: ["bun"],
   settings: ["none", "json", "database"],
   styling: ["tailwindcss", "css"],
-  testing: ["bun", "none"],
+  testing: ["bun", "desktop-smoke", "none"],
   ui: ["none", "shadcn"],
 } as const satisfies {
   [Key in keyof ScaffoldStackOptions]: Readonly<
@@ -96,7 +96,7 @@ const electrobunFeatureOptionChoices = {
   buildEnv: ["dev", "canary", "stable"],
   buildTargets: ["current", "all"],
   navigation: ["local-only", "none"],
-  nativeUtils: ["none", "file-dialogs"],
+  nativeUtils: ["none", "file-dialogs", "clipboard", "desktop-kit"],
   windowStyle: ["native", "hidden-inset"],
 } as const satisfies {
   [Key in keyof ElectrobunFeatureOptions]: Readonly<
@@ -260,10 +260,10 @@ export const getUnsupportedStackOptions = (
     });
   }
 
-  if (options.dbSetup === "seed" && options.database !== "sqlite") {
+  if (options.dbSetup === "seed" && options.database === "none") {
     unsupported.push({
       flag: `--database ${options.database} --db-setup ${options.dbSetup}`,
-      note: "Seed data requires SQLite in the current template.",
+      note: "Seed data requires a generated database.",
     });
   }
 
@@ -299,6 +299,27 @@ export const getUnsupportedStackOptions = (
     unsupported.push({
       flag: `--ui shadcn --styling ${options.styling}`,
       note: "shadcn/ui requires Tailwind CSS in this template.",
+    });
+  }
+
+  if (options.frontend === "preact" && options.router !== "none") {
+    unsupported.push({
+      flag: `--frontend ${options.frontend} --router ${options.router}`,
+      note: "The Preact renderer currently supports direct rendering without a React router.",
+    });
+  }
+
+  if (options.frontend === "preact" && options.query !== "none") {
+    unsupported.push({
+      flag: `--frontend ${options.frontend} --query ${options.query}`,
+      note: "The Preact renderer does not include TanStack Query in this template.",
+    });
+  }
+
+  if (options.frontend === "preact" && options.ui !== "none") {
+    unsupported.push({
+      flag: `--frontend ${options.frontend} --ui ${options.ui}`,
+      note: "The Preact renderer does not include React component-library configuration.",
     });
   }
 

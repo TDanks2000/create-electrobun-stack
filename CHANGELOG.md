@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0
+
+### Added
+
+- Adds a `--frontend preact` renderer mode for smaller direct-rendered WebViews.
+- Adds `--database json-file` for lightweight local persistence through `data/app-db.json`.
+- Expands `--native-utils` with `clipboard` and `desktop-kit` options backed by Electrobun clipboard utilities.
+- Adds `--testing desktop-smoke`, which includes Bun tests plus a mocked Electrobun main-window launch smoke test.
+
+### Changed
+
+- Extends generated manifests and schema with Preact, JSON database, clipboard, and desktop smoke-test feature flags.
+- Expands generated-project validation to cover Preact, JSON-file persistence, desktop-kit native utilities, and desktop smoke tests.
+
 ## 1.0.0
 
 ### Added

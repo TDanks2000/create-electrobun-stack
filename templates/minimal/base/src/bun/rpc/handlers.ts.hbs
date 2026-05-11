@@ -1,7 +1,27 @@
 {{#if hasNativeFileDialogs}}import { Utils } from "electrobun/bun";
+{{else}}
+{{#if hasNativeClipboard}}import { Utils } from "electrobun/bun";
+{{/if}}
 {{/if}}
 import { APP_NAME } from "../../shared/constants";
-import type { AppEnvironment{{#if hasNativeFileDialogs}}, FileDialogResult{{/if}} } from "../../shared/types";
+{{#if hasNativeFileDialogs}}
+import type {
+  AppEnvironment,
+{{#if hasNativeClipboard}}
+  ClipboardStatus,
+{{/if}}
+  FileDialogResult,
+} from "../../shared/types";
+{{else}}
+{{#if hasNativeClipboard}}
+import type {
+  AppEnvironment,
+  ClipboardStatus,
+} from "../../shared/types";
+{{else}}
+import type { AppEnvironment } from "../../shared/types";
+{{/if}}
+{{/if}}
 {{#if hasDatabase}}import { getDatabaseStatus } from "../db/client";
 {{/if}}
 {{#if hasSettings}}import { getSettingsStatus, updateSetting } from "../settings/store";
@@ -27,6 +47,26 @@ export const openFileDialog = async (): Promise<FileDialogResult> => {
     })) ?? [];
 
   return { paths };
+};
+{{/if}}
+{{#if hasNativeClipboard}}
+
+const getClipboardStatus = (): ClipboardStatus => ({
+  formats: Utils.clipboardAvailableFormats(),
+  text: Utils.clipboardReadText(),
+  updatedAt: new Date().toISOString(),
+});
+
+export const clearClipboard = (): ClipboardStatus => {
+  Utils.clipboardClear();
+  return getClipboardStatus();
+};
+
+export const readClipboard = (): ClipboardStatus => getClipboardStatus();
+
+export const writeClipboard = ({ text }: { text: string }): ClipboardStatus => {
+  Utils.clipboardWriteText(text);
+  return getClipboardStatus();
 };
 {{/if}}
 {{#if hasRpcExample}}

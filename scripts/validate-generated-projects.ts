@@ -79,8 +79,19 @@ const validationCases = [
     stack: {
       ...defaultStackOptions,
       auth: "app-lock",
-      nativeUtils: "file-dialogs",
+      nativeUtils: "desktop-kit",
       windowStyle: "hidden-inset",
+    },
+  },
+  {
+    name: "preact-json-desktop-smoke",
+    stack: {
+      ...defaultStackOptions,
+      database: "json-file",
+      dbSetup: "seed",
+      frontend: "preact",
+      router: "none",
+      testing: "desktop-smoke",
     },
   },
   {
@@ -217,7 +228,7 @@ const validateInstalledProject = async (
     targetDirectory,
   );
 
-  if (validationCase.stack.testing === "bun") {
+  if (validationCase.stack.testing !== "none") {
     await runGeneratedCommand(
       `${validationCase.name}: test`,
       ["test"],

@@ -1,0 +1,113 @@
+import { describe, expect, mock, test } from "bun:test";
+
+type WindowOptions = {
+  frame?: unknown;
+  rpc?: unknown;
+  title?: string;
+  titleBarStyle?: string;
+  url?: string;
+};
+
+type WindowRecord = {
+  closeHandlers: Array<() => void>;
+  navigationRules: Array<string> | null;
+  options: WindowOptions;
+  reloadedUrls: Array<string>;
+};
+
+const windows: Array<WindowRecord> = [];
+const quit = mock(() => undefined);
+const defineRPC = mock((config: unknown) => config);
+
+mock.module("electrobun/bun", () => ({
+  BrowserView: {
+    defineRPC,
+  },
+  BrowserWindow: class MockBrowserWindow {
+    private readonly record: WindowRecord;
+
+    readonly webview: {
+      loadURL: (url: string) => void;
+      setNavigationRules: (rules: Array<string>) => void;
+    };
+
+    constructor(options: WindowOptions) {
+      this.record = {
+        closeHandlers: [],
+        navigationRules: null,
+        options,
+        reloadedUrls: [],
+      };
+      this.webview = {
+        loadURL: (url) => {
+          this.record.reloadedUrls.push(url);
+        },
+        setNavigationRules: (rules) => {
+          this.record.navigationRules = [...rules];
+        },
+      };
+      windows.push(this.record);
+    }
+
+    on(event: string, handler: () => void): void {
+      if (event === "close") {
+        this.record.closeHandlers.push(handler);
+      }
+    }
+  },
+  Utils: {
+    clipboardAvailableFormats: mock(() => []),
+    clipboardClear: mock(() => undefined),
+    clipboardReadText: mock(() => null),
+    clipboardWriteText: mock((_input: { text: string }) => undefined),
+    openFileDialog: mock(async () => []),
+    paths: {
+      home: "/tmp",
+    },
+    quit,
+  },
+}));
+
+const { APP_NAME } = await import("../src/shared/constants");
+const { createMainWindow } = await import("../src/bun/window");
+
+describe("desktop launch smoke", () => {
+  test("creates the Electrobun main window with generated launch options", () => {
+    windows.length = 0;
+    quit.mockClear();
+
+    createMainWindow();
+
+    expect(windows).toHaveLength(1);
+
+    const record = windows[0];
+    if (!record) {
+      throw new Error("Main window was not captured.");
+    }
+
+    expect(record.options.title).toBe(APP_NAME);
+    expect(record.options.url).toBe("views://main/index.html");
+{{#if hasElectrobunRpc}}
+    expect(record.options.rpc).toBeDefined();
+    expect(defineRPC).toHaveBeenCalled();
+{{else}}
+    expect(record.options.rpc).toBeUndefined();
+{{/if}}
+{{#if hasHiddenInsetTitlebar}}
+    expect(record.options.titleBarStyle).toBe("hiddenInset");
+{{else}}
+    expect(record.options.titleBarStyle).toBeUndefined();
+{{/if}}
+{{#if hasNavigationGuard}}
+    expect(record.navigationRules).toContain("views://*");
+{{else}}
+    expect(record.navigationRules).toBeNull();
+{{/if}}
+
+    for (const closeHandler of record.closeHandlers) {
+      closeHandler();
+    }
+
+    expect(quit).toHaveBeenCalledTimes(1);
+  });
+});

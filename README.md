@@ -5,7 +5,7 @@
 [![Node version](https://img.shields.io/node/v/create-electrobun-stack.svg)](https://www.npmjs.com/package/create-electrobun-stack)
 [![Bun >=1.3.0](https://img.shields.io/badge/Bun-%3E%3D1.3.0-000?logo=bun&logoColor=white)](https://bun.sh)
 
-Scaffold a production-minded Electrobun desktop app with Bun, React, TypeScript, Vite, Biome, typed Electrobun RPC, and a small set of optional integrations that can be enabled at create time or added later.
+Scaffold a production-minded Electrobun desktop app with Bun, React or Preact, TypeScript, Vite, Biome, typed Electrobun RPC, and a small set of optional integrations that can be enabled at create time or added later.
 
 The generator is intentionally explicit: every selected stack option is written to `ces.json`, the generated project README explains what was scaffolded, and the `add` command can use that manifest to enable missing features without asking you to remember the original command.
 
@@ -106,6 +106,29 @@ Create a simpler renderer with React Router and TanStack Query:
 bunx create-electrobun-stack my-app \
   --router react-router \
   --query tanstack-query
+```
+
+Create a smaller Preact renderer:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --frontend preact \
+  --router none
+```
+
+Create with JSON-file persistence and desktop smoke tests:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --database json-file \
+  --db-setup seed \
+  --testing desktop-smoke
+```
+
+Add file dialogs and clipboard utilities:
+
+```bash
+bunx create-electrobun-stack my-app --native-utils desktop-kit
 ```
 
 Start small and add a feature later:

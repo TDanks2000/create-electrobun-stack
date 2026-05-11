@@ -2,34 +2,34 @@
 
 This page explains what each option scaffolds and where to look after the project is generated.
 
-## V1 Support Boundary
+## Support Boundary
 
-All options documented on this page are V1-supported. Supported means the option is part of the public CLI contract, is represented in `ces.json`, and is covered by unit tests, render validation, or the release validation matrix.
+All options documented on this page are supported public CLI options. Supported means the option is represented in `ces.json` and is covered by unit tests, render validation, or the generated-project validation matrix.
 
-Some categories are intentionally narrow for V1:
+Some categories remain intentionally narrow:
 
-- `--frontend react` is fixed because React is the only renderer maintained by the template.
 - `--runtime bun` is fixed because Electrobun apps run through Bun.
-- `--database sqlite` and `--orm drizzle` are the only persistence stack with generated files because they map cleanly to Bun SQLite and local desktop storage.
+- `--orm drizzle` is tied to SQLite because the generated Drizzle client uses `drizzle-orm/bun-sqlite`.
+- `--settings database` is tied to SQLite because the generated settings table and Drizzle schema are SQLite-specific.
 - `--template standard` and `--template full` are accepted compatibility aliases for the same V1 template source as `minimal`; they are not advertised as distinct stacks until their generated output differs and has release-gate coverage.
 
-## V1 Option Depth Decisions
+## Option Depth Decisions
 
-| Category | V1 decision |
+| Category | Decision |
 | --- | --- |
 | Template | `minimal` is canonical; `standard` and `full` are accepted aliases only. |
-| Frontend | Fixed to React for V1. Additional renderers are post-V1 work. |
+| Frontend | React is the default and supports router/query/UI integrations. Preact is available for smaller direct-rendered WebViews. |
 | Router | `tanstack-router`, `react-router`, and `none` are distinct supported choices. |
 | Query | `tanstack-query` and `none` are enough for V1. |
 | Styling | Tailwind CSS and plain CSS cover framework and no-framework styling. |
 | UI | shadcn config and `none` are supported; generated components are left to the app. |
 | Auth | `app-lock` is a local UI lock, not remote auth; deeper auth is post-V1 work. |
-| Database | SQLite is the V1 persistence target because it is local and Bun-native. |
+| Database | SQLite covers relational local storage; JSON-file persistence covers lightweight local records without SQLite. |
 | ORM | Drizzle is the V1 ORM option; another ORM needs clear desktop value before inclusion. |
-| DB setup | Seed data and `none` are the V1 setup choices. |
+| DB setup | Seed data works with generated database clients. |
 | Settings | JSON and database-backed settings are both supported through the same typed RPC surface. |
 | Package manager | Bun, npm, pnpm, and Yarn are supported for install/run command text. |
-| Testing | Bun tests and `none` are supported; desktop E2E testing is post-V1 work. |
+| Testing | Bun tests, mocked desktop launch smoke tests, and `none` are supported. |
 | Addons | Turborepo and `none` are supported. |
 | Examples | RPC example and `none` are supported; option-specific examples are post-V1 work. |
 | API | Electrobun RPC and static/no-RPC modes are supported. |
@@ -37,7 +37,7 @@ Some categories are intentionally narrow for V1:
 | Build env | `dev`, `canary`, and `stable` map directly to Electrobun build flags. |
 | Build targets | `current` and `all` map directly to Electrobun build flags. |
 | Navigation | Local-only navigation rules and `none` are supported. |
-| Native utils | File dialogs and `none` are supported. More utilities are post-V1 work. |
+| Native utils | File dialogs, clipboard utilities, the combined desktop kit, and `none` are supported. |
 | Window style | Native and hidden inset titlebar modes are supported. |
 | Runtime | Fixed to Bun for V1 because Electrobun runs the native process through Bun. |
 
@@ -61,6 +61,23 @@ Relevant files:
 - `src/views/main/main.tsx`
 - `src/views/main/app.tsx`
 - `src/views/main/home.tsx`
+
+React is the default frontend and supports all generated router, query, shadcn, and renderer examples.
+
+### `--frontend preact`
+
+Generates a Preact renderer for the Electrobun WebView.
+
+Relevant files:
+
+- `src/views/main/main.tsx`
+- `src/views/main/app.tsx`
+- `src/views/main/home.tsx`
+- `vite.config.ts`
+- `tsconfig.json`
+- `package.json`
+
+Preact currently supports direct rendering only. Use it with `--router none`, `--query none`, and `--ui none`.
 
 ### `--runtime bun`
 
@@ -227,6 +244,34 @@ Relevant files:
 
 Requires `--api electrobun-rpc`.
 
+### `--native-utils clipboard`
+
+Adds typed RPC requests for Electrobun clipboard read, write, and clear operations.
+
+Relevant files:
+
+- `src/bun/rpc/handlers.ts`
+- `src/bun/rpc/router.ts`
+- `src/shared/rpc/schema.ts`
+- `src/shared/types.ts`
+- `src/views/main/home.tsx`
+
+Requires `--api electrobun-rpc`.
+
+### `--native-utils desktop-kit`
+
+Adds both file-dialog and clipboard utilities.
+
+Relevant files:
+
+- `src/bun/rpc/handlers.ts`
+- `src/bun/rpc/router.ts`
+- `src/shared/rpc/schema.ts`
+- `src/shared/types.ts`
+- `src/views/main/home.tsx`
+
+Requires `--api electrobun-rpc`.
+
 ### `--native-utils none`
 
 Does not add native utility examples.
@@ -275,6 +320,19 @@ Relevant files:
 - `src/bun/rpc/router.ts`
 - `src/shared/rpc/schema.ts`
 
+### `--database json-file`
+
+Adds a local JSON record store at `data/app-db.json`.
+
+Relevant files:
+
+- `src/bun/db/client.ts`
+- `src/shared/types.ts`
+- `src/bun/rpc/router.ts`
+- `src/shared/rpc/schema.ts`
+
+Use this for lightweight local persistence when SQLite would be more structure than the app needs.
+
 ### `--orm drizzle`
 
 Adds Drizzle ORM on top of SQLite. This requires `--database sqlite`.
@@ -299,7 +357,7 @@ Uses the raw database client when SQLite is selected and skips ORM files.
 
 ### `--db-setup seed`
 
-Adds starter SQLite metadata when the database is empty. This requires `--database sqlite`.
+Adds starter metadata when the generated database is empty. This requires `--database sqlite` or `--database json-file`.
 
 Relevant files:
 
@@ -307,7 +365,7 @@ Relevant files:
 
 ### `--db-setup none`
 
-Leaves SQLite without starter seed data.
+Leaves the generated database without starter seed data.
 
 ### `--settings json`
 
@@ -386,6 +444,17 @@ Relevant files:
 - `package.json`
 - `tsconfig.json`
 
+### `--testing desktop-smoke`
+
+Adds the Bun test script, the generated manifest smoke test, and a mocked Electrobun desktop launch smoke test. The desktop smoke test imports the generated Bun entry surface with `electrobun/bun` mocked, creates the main window, and verifies the generated launch options without opening a real OS window.
+
+Relevant files:
+
+- `tests/manifest.test.ts`
+- `tests/desktop-smoke.test.ts`
+- `package.json`
+- `tsconfig.json`
+
 ### `--testing none`
 
 Omits the test script and test files.
@@ -415,11 +484,12 @@ Does not add Turborepo.
 The CLI validates stack choices before writing files:
 
 - Drizzle requires SQLite.
-- Seed data requires SQLite.
+- Seed data requires a generated database.
 - Database-backed settings require SQLite.
 - Settings require Electrobun RPC.
 - Native utility examples require Electrobun RPC.
 - The RPC example requires Electrobun RPC.
 - shadcn/ui requires Tailwind CSS.
+- Preact requires direct rendering with no React router, TanStack Query, or shadcn config.
 
 The `add` command can infer prerequisites for additive changes. For example, adding Drizzle can also add SQLite, and adding shadcn can also add Tailwind CSS.

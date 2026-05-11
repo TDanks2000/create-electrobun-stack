@@ -110,6 +110,7 @@ Usage:
   bunx create-electrobun-stack my-app
   bunx create-electrobun-stack add --database sqlite
   bunx create-electrobun-stack my-app --frontend react --router tanstack-router --runtime bun --styling tailwindcss
+  bunx create-electrobun-stack my-app --frontend preact --router none
   bun run src/index.ts my-app --no-install --git
   bun run src/index.ts add --cwd my-app --settings database
 
@@ -130,14 +131,14 @@ Defaults:
 Options:
   Core stack:
     --template minimal|standard|full
-    --frontend react
+    --frontend react|preact
     --router tanstack-router|react-router|none
     --query none|tanstack-query
     --runtime bun
     --styling tailwindcss|css
     --ui none|shadcn
     --auth none|app-lock
-    --database none|sqlite
+    --database none|sqlite|json-file
     --orm none|drizzle
     --db-setup none|seed
     --settings none|json|database
@@ -145,7 +146,7 @@ Options:
   Electrobun feature options:
     --api electrobun-rpc|none
     --navigation local-only|none
-    --native-utils none|file-dialogs
+    --native-utils none|file-dialogs|clipboard|desktop-kit
     --window-style native|hidden-inset
     --app-menu edit|none
     --build-env dev|canary|stable
@@ -153,7 +154,7 @@ Options:
 
   Tooling and output:
     --package-manager bun|npm|pnpm|yarn
-    --testing bun|none
+    --testing bun|desktop-smoke|none
     --addons none|turborepo
     --examples rpc|none
     --install / --no-install
@@ -329,6 +330,20 @@ export const parseArgs = (args: Array<string>): CliOptions => {
     stack.examples = "none";
   }
 
+  if (stack.frontend === "preact") {
+    if (!stackFlags.has("router")) {
+      stack.router = "none";
+    }
+
+    if (!stackFlags.has("query")) {
+      stack.query = "none";
+    }
+
+    if (!stackFlags.has("ui")) {
+      stack.ui = "none";
+    }
+  }
+
   return {
     appIdentifier,
     command,
@@ -447,7 +462,7 @@ export const createFinalScreen = ({
           {
             command: checkCommand,
             detail:
-              stack.testing === "bun"
+              stack.testing !== "none"
                 ? "Run typecheck, lint, and tests"
                 : "Run typecheck and lint",
           },
@@ -465,7 +480,7 @@ export const createFinalScreen = ({
             command: lintCommand,
             detail: "Run Biome checks",
           },
-          ...(stack.testing === "bun"
+          ...(stack.testing !== "none"
             ? [
                 {
                   command: testCommand,
@@ -603,8 +618,8 @@ const inferAddDependencies = (
       stack,
       requestedFlags,
       "database",
-      "sqlite",
-      "seed data requires SQLite",
+      stack.database === "none" ? "json-file" : stack.database,
+      "seed data requires a generated database",
       inferredChanges,
     );
   }
@@ -683,7 +698,10 @@ const isAdditiveStackChange = (change: StackChange): boolean => {
     case "auth":
       return change.from === "none" && change.to === "app-lock";
     case "database":
-      return change.from === "none" && change.to === "sqlite";
+      return (
+        change.from === "none" &&
+        (change.to === "sqlite" || change.to === "json-file")
+      );
     case "dbSetup":
       return change.from === "none" && change.to === "seed";
     case "examples":
@@ -691,7 +709,14 @@ const isAdditiveStackChange = (change: StackChange): boolean => {
     case "navigation":
       return change.from === "none" && change.to === "local-only";
     case "nativeUtils":
-      return change.from === "none" && change.to === "file-dialogs";
+      return (
+        (change.from === "none" &&
+          (change.to === "file-dialogs" ||
+            change.to === "clipboard" ||
+            change.to === "desktop-kit")) ||
+        ((change.from === "file-dialogs" || change.from === "clipboard") &&
+          change.to === "desktop-kit")
+      );
     case "orm":
       return change.from === "none" && change.to === "drizzle";
     case "settings":
@@ -702,7 +727,11 @@ const isAdditiveStackChange = (change: StackChange): boolean => {
     case "styling":
       return change.from === "css" && change.to === "tailwindcss";
     case "testing":
-      return change.from === "none" && change.to === "bun";
+      return (
+        (change.from === "none" &&
+          (change.to === "bun" || change.to === "desktop-smoke")) ||
+        (change.from === "bun" && change.to === "desktop-smoke")
+      );
     case "ui":
       return change.from === "none" && change.to === "shadcn";
     case "windowStyle":

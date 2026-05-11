@@ -185,6 +185,15 @@ describe("parseArgs", () => {
     expect(options.stack.examples).toBe("none");
   });
 
+  test("uses direct rendering defaults for Preact", () => {
+    const options = parseArgs(["sample-app", "--frontend", "preact"]);
+
+    expect(options.stack.frontend).toBe("preact");
+    expect(options.stack.router).toBe("none");
+    expect(options.stack.query).toBe("none");
+    expect(options.stack.ui).toBe("none");
+  });
+
   test("rejects unsupported stack combinations", () => {
     expect(() =>
       validateStackOptions({
@@ -200,7 +209,7 @@ describe("parseArgs", () => {
         database: "none",
         dbSetup: "seed",
       }),
-    ).toThrow("Seed data requires SQLite");
+    ).toThrow("Seed data requires a generated database");
 
     expect(() =>
       validateStackOptions({
@@ -243,6 +252,13 @@ describe("parseArgs", () => {
         settings: "database",
       }),
     ).toThrow("Database-backed settings require SQLite");
+
+    expect(() =>
+      validateStackOptions({
+        ...defaultStackOptions,
+        frontend: "preact",
+      }),
+    ).toThrow("Preact renderer currently supports direct rendering");
   });
 });
 
@@ -432,6 +448,33 @@ describe("CLI process", () => {
     });
   });
 
+  test("add command can enable JSON database seed data", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      testing: "none",
+    });
+    const result = await runCliProcess([
+      "add",
+      "--cwd",
+      target,
+      "--database",
+      "json-file",
+      "--db-setup",
+      "seed",
+      "--no-install",
+    ]);
+    const dbClient = await readGenerated(target, "src/bun/db/client.ts");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("database: none -> json-file");
+    expect(result.stdout).toContain("dbSetup: none -> seed");
+    expect(dbClient).toContain("app-db.json");
+    expect(manifest.database).toBe("json-file");
+    expect(manifest.dbSetup).toBe("seed");
+    expect(manifest.features.jsonDatabase).toBe(true);
+  });
+
   test("add command can enable native file dialogs and infer RPC", async () => {
     const target = await renderMinimal({
       ...defaultStackOptions,
@@ -459,6 +502,43 @@ describe("CLI process", () => {
     expect(manifest.api).toBe("electrobun-rpc");
     expect(manifest.nativeUtils).toBe("file-dialogs");
     expect(manifest.features.nativeFileDialogs).toBe(true);
+  });
+
+  test("add command can expand file dialogs to the desktop native kit", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      nativeUtils: "file-dialogs",
+      testing: "none",
+    });
+    const result = await runCliProcess([
+      "add",
+      "--cwd",
+      target,
+      "--native-utils",
+      "desktop-kit",
+      "--testing",
+      "desktop-smoke",
+      "--no-install",
+    ]);
+    const handlers = await readGenerated(target, "src/bun/rpc/handlers.ts");
+    const desktopSmoke = await readGenerated(
+      target,
+      "tests/desktop-smoke.test.ts",
+    );
+    const manifest = await readGeneratedManifest(target);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("nativeUtils: file-dialogs -> desktop-kit");
+    expect(result.stdout).toContain("testing: none -> desktop-smoke");
+    expect(handlers).toContain("Utils.clipboardWriteText");
+    expect(desktopSmoke).toContain("desktop launch smoke");
+    expect(manifest.nativeUtils).toBe("desktop-kit");
+    expect(manifest.testing).toBe("desktop-smoke");
+    expect(manifest.features).toMatchObject({
+      desktopSmokeTest: true,
+      nativeClipboard: true,
+      nativeFileDialogs: true,
+    });
   });
 
   test("add command requires ces.json", async () => {
@@ -571,11 +651,12 @@ describe("generated minimal template", () => {
         buildTargets: "all",
         database: "sqlite",
         dbSetup: "seed",
-        nativeUtils: "file-dialogs",
+        nativeUtils: "desktop-kit",
         orm: "drizzle",
         query: "tanstack-query",
         router: "react-router",
         settings: "database",
+        testing: "desktop-smoke",
         ui: "shadcn",
         windowStyle: "hidden-inset",
       },
@@ -588,6 +669,14 @@ describe("generated minimal template", () => {
         router: "none",
         styling: "css",
         testing: "none",
+      },
+      {
+        ...defaultStackOptions,
+        database: "json-file",
+        dbSetup: "seed",
+        frontend: "preact",
+        router: "none",
+        testing: "desktop-smoke",
       },
     ] satisfies Array<typeof defaultStackOptions>;
 
@@ -641,7 +730,7 @@ describe("generated minimal template", () => {
     expect(viteConfig).toContain('routesDirectory: "./routes"');
     expect(viteConfig).toContain('generatedRouteTree: "./routeTree.gen.ts"');
     expect(viteConfig.indexOf("tanstackRouter({")).toBeLessThan(
-      viteConfig.indexOf("react(),"),
+      viteConfig.indexOf("rendererPlugin,"),
     );
     expect(rootRoute).toContain("export const Route = createRootRoute");
     expect(route).toContain('export const Route = createFileRoute("/")');
@@ -703,13 +792,17 @@ describe("generated minimal template", () => {
     expect(manifest.settings).toBe("none");
     expect(manifest.features).toMatchObject({
       databaseSettings: false,
+      desktopSmokeTest: false,
       editMenu: true,
       electrobun: true,
       electrobunRpc: true,
       hiddenInsetTitlebar: false,
+      jsonDatabase: false,
       jsonSettings: false,
       localNavigationGuard: true,
+      nativeClipboard: false,
       nativeFileDialogs: false,
+      preact: false,
       react: true,
       reactRouter: false,
       rpcExample: true,
@@ -756,6 +849,40 @@ describe("generated minimal template", () => {
     expect(manifest.features).toMatchObject({
       reactRouter: false,
       tanstackRouter: false,
+    });
+  });
+
+  test("renders Preact direct renderer when requested", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      frontend: "preact",
+      router: "none",
+    });
+    const packageJson = await readGenerated(target, "package.json");
+    const main = await readGenerated(target, "src/views/main/main.tsx");
+    const home = await readGenerated(target, "src/views/main/home.tsx");
+    const tsconfig = await readGenerated(target, "tsconfig.json");
+    const viteConfig = await readGenerated(target, "vite.config.ts");
+    const readme = await readGenerated(target, "README.md");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(packageJson).toContain('"preact"');
+    expect(packageJson).toContain('"@preact/preset-vite"');
+    expect(packageJson).not.toContain('"react"');
+    expect(packageJson).not.toContain('"react-dom"');
+    expect(main).toContain('import { render } from "preact"');
+    expect(main).not.toContain("createRoot");
+    expect(home).toContain('from "preact/hooks"');
+    expect(tsconfig).toContain('"jsxImportSource": "preact"');
+    expect(viteConfig).toContain('import preact from "@preact/preset-vite"');
+    expect(viteConfig).toContain("const rendererPlugin = preact()");
+    expect(readme).toContain("- Preact + Vite renderer");
+    expect(manifest.frontend).toEqual(["preact"]);
+    expect(manifest.router).toBe("none");
+    expect(manifest.features).toMatchObject({
+      preact: true,
+      react: false,
+      vite: true,
     });
   });
 
@@ -873,6 +1000,31 @@ describe("generated minimal template", () => {
     expect(packageJson).toContain('"test": "bun test"');
     expect(tsconfig).toContain('"tests"');
     expect(testFile).toContain("generated project manifest");
+  });
+
+  test("renders desktop launch smoke tests when requested", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      testing: "desktop-smoke",
+      windowStyle: "hidden-inset",
+    });
+    const packageJson = await readGenerated(target, "package.json");
+    const smokeTest = await readGenerated(
+      target,
+      "tests/desktop-smoke.test.ts",
+    );
+    const manifest = await readGeneratedManifest(target);
+
+    expect(packageJson).toContain('"test": "bun test"');
+    expect(smokeTest).toContain("desktop launch smoke");
+    expect(smokeTest).toContain("createMainWindow");
+    expect(smokeTest).toContain('titleBarStyle).toBe("hiddenInset"');
+    expect(manifest.testing).toBe("desktop-smoke");
+    expect(manifest.addons).toContain("desktop-smoke-test");
+    expect(manifest.features).toMatchObject({
+      bunTest: true,
+      desktopSmokeTest: true,
+    });
   });
 
   test("renders selected package manager metadata and commands", async () => {
@@ -1000,6 +1152,38 @@ describe("generated minimal template", () => {
     expect(manifest.features.nativeFileDialogs).toBe(true);
   });
 
+  test("renders desktop native utility kit with clipboard", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      nativeUtils: "desktop-kit",
+    });
+    const home = await readGenerated(target, "src/views/main/home.tsx");
+    const handlers = await readGenerated(target, "src/bun/rpc/handlers.ts");
+    const schema = await readGenerated(target, "src/shared/rpc/schema.ts");
+    const router = await readGenerated(target, "src/bun/rpc/router.ts");
+    const types = await readGenerated(target, "src/shared/types.ts");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(handlers).toContain("Utils.openFileDialog");
+    expect(handlers).toContain("Utils.clipboardReadText");
+    expect(handlers).toContain("Utils.clipboardWriteText");
+    expect(schema).toContain("readClipboard");
+    expect(schema).toContain("writeClipboard");
+    expect(router).toContain("clearClipboard");
+    expect(router).toContain("openFileDialog");
+    expect(types).toContain("ClipboardStatus");
+    expect(home).toContain("writeNativeClipboard");
+    expect(home).toContain("Clipboard");
+    expect(home).toContain("File dialogs");
+    expect(manifest.nativeUtils).toBe("desktop-kit");
+    expect(manifest.addons).toContain("native-file-dialogs");
+    expect(manifest.addons).toContain("native-clipboard");
+    expect(manifest.features).toMatchObject({
+      nativeClipboard: true,
+      nativeFileDialogs: true,
+    });
+  });
+
   test("renders app lock auth option", async () => {
     const target = await renderMinimal({
       ...defaultStackOptions,
@@ -1036,6 +1220,31 @@ describe("generated minimal template", () => {
     expect(unseededClient).not.toContain("SQLite is ready.");
     expect(seededClient).toContain("SQLite is ready.");
     expect(manifest.dbSetup).toBe("seed");
+  });
+
+  test("renders JSON file database with seed data", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      database: "json-file",
+      dbSetup: "seed",
+    });
+    const dbClient = await readGenerated(target, "src/bun/db/client.ts");
+    const home = await readGenerated(target, "src/views/main/home.tsx");
+    const readme = await readGenerated(target, "README.md");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(dbClient).toContain("app-db.json");
+    expect(dbClient).toContain("JSON file database is ready.");
+    expect(dbClient).toContain('driver: "json-file"');
+    expect(home).toContain("JSON file");
+    expect(readme).toContain("- JSON file database");
+    expect(manifest.database).toBe("json-file");
+    expect(manifest.dbSetup).toBe("seed");
+    expect(manifest.addons).toContain("json-database");
+    expect(manifest.features).toMatchObject({
+      jsonDatabase: true,
+      sqlite: false,
+    });
   });
 
   test("renders VS Code-style JSON settings storage", async () => {

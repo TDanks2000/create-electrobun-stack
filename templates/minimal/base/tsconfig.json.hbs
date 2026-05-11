@@ -2,6 +2,9 @@
   "compilerOptions": {
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
+{{#if hasPreactFrontend}}
+    "jsxImportSource": "preact",
+{{/if}}
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "module": "Preserve",
     "moduleResolution": "Bundler",

@@ -172,6 +172,24 @@ const promptElectrobunFeatures = async (
             : "requires Electrobun RPC",
         disabled: options.api !== "electrobun-rpc",
       },
+      {
+        value: "clipboard",
+        label: "Clipboard",
+        hint:
+          options.api === "electrobun-rpc"
+            ? "adds typed clipboard read/write requests"
+            : "requires Electrobun RPC",
+        disabled: options.api !== "electrobun-rpc",
+      },
+      {
+        value: "desktop-kit",
+        label: "Desktop kit",
+        hint:
+          options.api === "electrobun-rpc"
+            ? "adds file dialog and clipboard requests"
+            : "requires Electrobun RPC",
+        disabled: options.api !== "electrobun-rpc",
+      },
     ],
   );
 
@@ -276,18 +294,45 @@ export const promptStackOptions = async (
       label: "React WebView",
       hint: "generates the renderer view with React",
     },
+    {
+      value: "preact",
+      label: "Preact WebView",
+      hint: "generates a smaller direct-rendered Preact view",
+    },
   ]);
+
+  if (options.frontend === "preact") {
+    if (!lockedOptions.has("router")) {
+      options.router = "none";
+    }
+
+    if (!lockedOptions.has("query")) {
+      options.query = "none";
+    }
+
+    if (!lockedOptions.has("ui")) {
+      options.ui = "none";
+    }
+  }
 
   await promptStackSelect(options, lockedOptions, "router", "Router", [
     {
       value: "tanstack-router",
       label: "TanStack Router",
-      hint: "adds file-based routes with the TanStack Vite plugin",
+      hint:
+        options.frontend === "react"
+          ? "adds file-based routes with the TanStack Vite plugin"
+          : "requires React renderer",
+      disabled: options.frontend !== "react",
     },
     {
       value: "react-router",
       label: "React Router",
-      hint: "adds React Router with hash history",
+      hint:
+        options.frontend === "react"
+          ? "adds React Router with hash history"
+          : "requires React renderer",
+      disabled: options.frontend !== "react",
     },
     {
       value: "none",
@@ -305,7 +350,11 @@ export const promptStackOptions = async (
     {
       value: "tanstack-query",
       label: "TanStack Query",
-      hint: "adds QueryClientProvider for async state",
+      hint:
+        options.frontend === "react"
+          ? "adds QueryClientProvider for async state"
+          : "requires React renderer",
+      disabled: options.frontend !== "react",
     },
   ]);
 
@@ -334,10 +383,13 @@ export const promptStackOptions = async (
       value: "shadcn",
       label: "shadcn/ui config",
       hint:
-        options.styling === "tailwindcss"
-          ? "adds components.json for shadcn/ui"
-          : "requires Tailwind CSS",
-      disabled: options.styling !== "tailwindcss",
+        options.frontend !== "react"
+          ? "requires React renderer"
+          : options.styling === "tailwindcss"
+            ? "adds components.json for shadcn/ui"
+            : "requires Tailwind CSS",
+      disabled:
+        options.frontend !== "react" || options.styling !== "tailwindcss",
     },
   ]);
 
@@ -351,6 +403,11 @@ export const promptStackOptions = async (
       value: "sqlite",
       label: "SQLite",
       hint: "adds a Bun SQLite client",
+    },
+    {
+      value: "json-file",
+      label: "JSON file",
+      hint: "adds a typed local JSON record store",
     },
   ]);
 
@@ -423,10 +480,10 @@ export const promptStackOptions = async (
       value: "seed",
       label: "Seed data",
       hint:
-        options.database === "sqlite"
+        options.database !== "none"
           ? "adds a starter metadata row"
-          : "requires SQLite",
-      disabled: options.database !== "sqlite",
+          : "requires a generated database",
+      disabled: options.database === "none",
     },
   ]);
 
@@ -435,6 +492,11 @@ export const promptStackOptions = async (
       value: "bun",
       label: "Bun test",
       hint: "adds test script and manifest smoke test",
+    },
+    {
+      value: "desktop-smoke",
+      label: "Desktop smoke",
+      hint: "adds Bun tests plus a mocked Electrobun launch smoke test",
     },
     {
       value: "none",

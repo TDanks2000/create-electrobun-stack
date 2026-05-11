@@ -33,7 +33,7 @@ Generated with `create-electrobun-stack`.
 
 - Electrobun desktop app
 - Bun native process
-- React + Vite renderer
+- {{frontendDisplayName}} + Vite renderer
 - {{routerDisplayName}}
 {{#if hasTanstackQuery}}
 - TanStack Query
@@ -47,13 +47,13 @@ Generated with `create-electrobun-stack`.
 - Strict TypeScript
 - Biome
 {{#if hasTesting}}
-- Bun test
+- {{#if hasDesktopSmokeTest}}Bun test with desktop launch smoke{{else}}Bun test{{/if}}
 {{/if}}
 {{#if hasTurborepo}}
 - Turborepo task runner
 {{/if}}
 {{#if hasDatabase}}
-- SQLite
+- {{databaseDisplayName}} database
 {{/if}}
 {{#if hasDrizzle}}
 - Drizzle ORM
@@ -67,6 +67,9 @@ Generated with `create-electrobun-stack`.
 {{#if hasNativeFileDialogs}}
 - Native file dialog example
 {{/if}}
+{{#if hasNativeClipboard}}
+- Native clipboard example
+{{/if}}
 {{#if hasShadcn}}
 - shadcn/ui project config
 {{/if}}
@@ -77,7 +80,7 @@ Generated with `create-electrobun-stack`.
 src/
   bun/                  # Electrobun Bun process
   shared/               # Types shared by Bun and renderer
-  views/main/           # React renderer
+  views/main/           # {{frontendDisplayName}} renderer
 ```
 
 Start replacing the starter UI in `{{homeFilePath}}`.
@@ -106,7 +109,7 @@ The starter greeting/logging demo shows the full native bridge path:
 
 ## Persistence
 
-SQLite is enabled through `src/bun/db/client.ts`.
+{{databaseDisplayName}} persistence is enabled through `src/bun/db/client.ts`.
 {{#if hasDrizzle}}
 
 Drizzle is enabled through `src/bun/db/schema.ts` and `drizzle.config.ts`.

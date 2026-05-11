@@ -14,6 +14,9 @@ export const mainViewRPC = BrowserView.defineRPC<MainViewRPC>({
 {{#if hasDatabase}}
       getDatabaseStatus: handlers.getDatabaseStatus,
 {{/if}}
+{{#if hasNativeClipboard}}
+      clearClipboard: handlers.clearClipboard,
+{{/if}}
       getEnvironment: handlers.getEnvironment,
 {{#if hasSettings}}
       getSettingsStatus: handlers.getSettingsStatus,
@@ -24,8 +27,14 @@ export const mainViewRPC = BrowserView.defineRPC<MainViewRPC>({
 {{#if hasNativeFileDialogs}}
       openFileDialog: handlers.openFileDialog,
 {{/if}}
+{{#if hasNativeClipboard}}
+      readClipboard: handlers.readClipboard,
+{{/if}}
 {{#if hasSettings}}
       updateSetting: handlers.updateSetting,
+{{/if}}
+{{#if hasNativeClipboard}}
+      writeClipboard: handlers.writeClipboard,
 {{/if}}
     },
   },

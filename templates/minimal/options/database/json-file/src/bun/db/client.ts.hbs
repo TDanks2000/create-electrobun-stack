@@ -1,0 +1,74 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import type { DatabaseStatus } from "../../shared/types";
+
+type JsonRecord = {
+  createdAt: string;
+  id: string;
+  key: string;
+  value: string;
+};
+
+type JsonDatabase = {
+  records: Array<JsonRecord>;
+};
+
+export const databasePath = join(process.cwd(), "data", "app-db.json");
+
+const emptyDatabase = (): JsonDatabase => ({ records: [] });
+
+const readDatabase = (): JsonDatabase => {
+  if (!existsSync(databasePath)) {
+    return emptyDatabase();
+  }
+
+  const parsed = JSON.parse(readFileSync(databasePath, "utf8")) as unknown;
+
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    !Array.isArray((parsed as JsonDatabase).records)
+  ) {
+    return emptyDatabase();
+  }
+
+  return parsed as JsonDatabase;
+};
+
+const writeDatabase = (database: JsonDatabase): void => {
+  mkdirSync(dirname(databasePath), { recursive: true });
+  writeFileSync(databasePath, `${JSON.stringify(database, null, 2)}\n`);
+};
+
+mkdirSync(dirname(databasePath), { recursive: true });
+
+if (!existsSync(databasePath)) {
+  writeDatabase(emptyDatabase());
+}
+
+{{#if hasSeedData}}
+const initialDatabase = readDatabase();
+
+if (initialDatabase.records.length === 0) {
+  writeDatabase({
+    records: [
+      {
+        createdAt: new Date().toISOString(),
+        id: crypto.randomUUID(),
+        key: "starter",
+        value: "JSON file database is ready.",
+      },
+    ],
+  });
+}
+{{/if}}
+
+export const getDatabaseStatus = (): DatabaseStatus => {
+  const database = readDatabase();
+
+  return {
+    driver: "json-file",
+    path: databasePath,
+    records: database.records.length,
+  };
+};

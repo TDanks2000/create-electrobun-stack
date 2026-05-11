@@ -82,19 +82,19 @@ The command reads `ces.json`, applies only the flags you pass, infers required p
 | Option | Values | Default |
 | --- | --- | --- |
 | `--template` | `minimal`, `standard`, `full` | `minimal` |
-| `--frontend` | `react` | `react` |
+| `--frontend` | `react`, `preact` | `react` |
 | `--router` | `tanstack-router`, `react-router`, `none` | `tanstack-router` |
 | `--query` | `none`, `tanstack-query` | `none` |
 | `--runtime` | `bun` | `bun` |
 | `--styling` | `tailwindcss`, `css` | `tailwindcss` |
 | `--ui` | `none`, `shadcn` | `none` |
 | `--auth` | `none`, `app-lock` | `none` |
-| `--database` | `none`, `sqlite` | `none` |
+| `--database` | `none`, `sqlite`, `json-file` | `none` |
 | `--orm` | `none`, `drizzle` | `none` |
 | `--db-setup` | `none`, `seed` | `none` |
 | `--settings` | `none`, `json`, `database` | `none` |
 | `--package-manager` | `bun`, `npm`, `pnpm`, `yarn` | `bun` |
-| `--testing` | `bun`, `none` | `bun` |
+| `--testing` | `bun`, `desktop-smoke`, `none` | `bun` |
 | `--addons` | `none`, `turborepo` | `none` |
 | `--examples` | `rpc`, `none` | `rpc` |
 
@@ -104,7 +104,7 @@ The command reads `ces.json`, applies only the flags you pass, infers required p
 | --- | --- | --- |
 | `--api` | `electrobun-rpc`, `none` | `electrobun-rpc` |
 | `--navigation` | `local-only`, `none` | `local-only` |
-| `--native-utils` | `none`, `file-dialogs` | `none` |
+| `--native-utils` | `none`, `file-dialogs`, `clipboard`, `desktop-kit` | `none` |
 | `--window-style` | `native`, `hidden-inset` | `native` |
 | `--app-menu` | `edit`, `none` | `edit` |
 | `--build-env` | `dev`, `canary`, `stable` | `dev` |
@@ -115,12 +115,14 @@ The command reads `ces.json`, applies only the flags you pass, infers required p
 The CLI fails before files are written when unsupported combinations are selected:
 
 - `--orm drizzle` requires `--database sqlite`.
-- `--db-setup seed` requires `--database sqlite`.
+- `--db-setup seed` requires a generated database.
 - `--settings database` requires `--database sqlite`.
 - `--settings json` and `--settings database` require `--api electrobun-rpc`.
 - `--native-utils file-dialogs` requires `--api electrobun-rpc`.
+- `--native-utils clipboard` and `--native-utils desktop-kit` require `--api electrobun-rpc`.
 - `--examples rpc` requires `--api electrobun-rpc`.
 - `--ui shadcn` requires `--styling tailwindcss`.
+- `--frontend preact` currently requires `--router none`, `--query none`, and `--ui none`.
 
 The `add` command can infer some prerequisites. For example, `add --orm drizzle` enables SQLite if it was missing, and `add --ui shadcn` enables Tailwind CSS if the app was created with plain CSS.
 
@@ -164,6 +166,14 @@ bunx create-electrobun-stack my-app \
   --query tanstack-query
 ```
 
+Use Preact with direct rendering:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --frontend preact \
+  --router none
+```
+
 Use plain CSS and no renderer router:
 
 ```bash
@@ -178,6 +188,14 @@ Use SQLite and Drizzle:
 bunx create-electrobun-stack my-app \
   --database sqlite \
   --orm drizzle
+```
+
+Use JSON-file persistence:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --database json-file \
+  --db-setup seed
 ```
 
 Use SQLite-backed settings:
@@ -198,6 +216,18 @@ Use a native file dialog example:
 
 ```bash
 bunx create-electrobun-stack my-app --native-utils file-dialogs
+```
+
+Use native clipboard plus file dialogs:
+
+```bash
+bunx create-electrobun-stack my-app --native-utils desktop-kit
+```
+
+Add desktop launch smoke tests:
+
+```bash
+bunx create-electrobun-stack my-app --testing desktop-smoke
 ```
 
 Use hidden inset window chrome:
@@ -242,4 +272,5 @@ Options may add commands:
 
 - `--addons turborepo` adds `bun run check`.
 - `--orm drizzle` adds `bun run db:generate` and `bun run db:studio`.
+- `--testing desktop-smoke` keeps `bun test` and adds `tests/desktop-smoke.test.ts`.
 - `--testing none` omits `bun test`.

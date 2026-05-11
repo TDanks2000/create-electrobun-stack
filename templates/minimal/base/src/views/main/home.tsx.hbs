@@ -1,7 +1,15 @@
 {{#if hasElectrobunRpc}}
+{{#if hasPreactFrontend}}
+import { useEffect, useState } from "preact/hooks";
+{{else}}
 import { useEffect, useState } from "react";
+{{/if}}
+{{else}}
+{{#if hasPreactFrontend}}
+import { useState } from "preact/hooks";
 {{else}}
 import { useState } from "react";
+{{/if}}
 {{/if}}
 import { APP_NAME } from "../../shared/constants";
 {{#if hasElectrobunRpc}}
@@ -71,6 +79,15 @@ export const Home = () => {
   const [selectedPaths, setSelectedPaths] = useState<Array<string>>([]);
   const [isOpeningFileDialog, setIsOpeningFileDialog] = useState(false);
 {{/if}}
+{{#if hasNativeClipboard}}
+  const [clipboard, setClipboard] = useState<Shared.ClipboardStatus | null>(
+    null,
+  );
+  const [clipboardText, setClipboardText] = useState(
+    `Copied from ${APP_NAME}.`,
+  );
+  const [isSyncingClipboard, setIsSyncingClipboard] = useState(false);
+{{/if}}
 {{/if}}
 {{#if hasElectrobunRpc}}
   const isReady = environment !== null;
@@ -97,6 +114,9 @@ export const Home = () => {
 {{#if hasSettings}}
       const settingsRequest = rpc.request.getSettingsStatus(null);
 {{/if}}
+{{#if hasNativeClipboard}}
+      const clipboardRequest = rpc.request.readClipboard(null);
+{{/if}}
 
       const environmentResult = await environmentRequest;
 {{#if hasRpcExample}}
@@ -107,6 +127,9 @@ export const Home = () => {
 {{/if}}
 {{#if hasSettings}}
       const settingsResult = await settingsRequest;
+{{/if}}
+{{#if hasNativeClipboard}}
+      const clipboardResult = await clipboardRequest;
 {{/if}}
 
       if (!mounted) {
@@ -122,6 +145,10 @@ export const Home = () => {
 {{/if}}
 {{#if hasSettings}}
       setSettings(settingsResult);
+{{/if}}
+{{#if hasNativeClipboard}}
+      setClipboard(clipboardResult);
+      setClipboardText(clipboardResult.text ?? `Copied from ${APP_NAME}.`);
 {{/if}}
 {{#if hasRpcExample}}
       rpc.send.logToBun({ message: "Renderer loaded and called Bun RPC." });
@@ -156,6 +183,42 @@ export const Home = () => {
       setSelectedPaths(result.paths);
     } finally {
       setIsOpeningFileDialog(false);
+    }
+  };
+{{/if}}
+{{#if hasNativeClipboard}}
+
+  const readNativeClipboard = async () => {
+    setIsSyncingClipboard(true);
+
+    try {
+      const nextClipboard = await rpc.request.readClipboard(null);
+      setClipboard(nextClipboard);
+      setClipboardText(nextClipboard.text ?? "");
+    } finally {
+      setIsSyncingClipboard(false);
+    }
+  };
+
+  const writeNativeClipboard = async () => {
+    setIsSyncingClipboard(true);
+
+    try {
+      setClipboard(await rpc.request.writeClipboard({ text: clipboardText }));
+    } finally {
+      setIsSyncingClipboard(false);
+    }
+  };
+
+  const clearNativeClipboard = async () => {
+    setIsSyncingClipboard(true);
+
+    try {
+      const nextClipboard = await rpc.request.clearClipboard(null);
+      setClipboard(nextClipboard);
+      setClipboardText("");
+    } finally {
+      setIsSyncingClipboard(false);
     }
   };
 {{/if}}
@@ -200,7 +263,7 @@ export const Home = () => {
           >
             <input
               aria-label="Unlock phrase"
-              onChange={(event) => setUnlockInput(event.target.value)}
+              onChange={(event) => setUnlockInput(event.currentTarget.value)}
               placeholder={APP_NAME}
               type="password"
               value={unlockInput}
@@ -323,10 +386,10 @@ export const Home = () => {
                 <span className="arch-layer-tech">
                   {database
                     ? `${database.driver} · ${database.records} rows`
-                    : "SQLite"}
+                    : "{{databaseDisplayName}}"}
                 </span>
               </div>
-              <span className="arch-tag db-tag">SQLite</span>
+              <span className="arch-tag db-tag">{{databaseDisplayName}}</span>
             </div>
 {{/if}}
 {{#if hasSettings}}
@@ -372,6 +435,59 @@ export const Home = () => {
               )}
             </div>
 {{/if}}
+{{#if hasNativeClipboard}}
+
+            <div className="native-actions">
+              <div>
+                <span className="native-actions-label">Clipboard</span>
+                <p className="native-actions-copy">
+                  Read, write, and clear text through Electrobun utilities.
+                </p>
+              </div>
+              <textarea
+                aria-label="Clipboard text"
+                className="native-textarea"
+                onChange={(event) =>
+                  setClipboardText(event.currentTarget.value)
+                }
+                rows={3}
+                value={clipboardText}
+              />
+              <div className="native-actions-row">
+                <button
+                  className="native-actions-button"
+                  disabled={isSyncingClipboard}
+                  onClick={() => void writeNativeClipboard()}
+                  type="button"
+                >
+                  Write
+                </button>
+                <button
+                  className="native-actions-button is-secondary"
+                  disabled={isSyncingClipboard}
+                  onClick={() => void readNativeClipboard()}
+                  type="button"
+                >
+                  Read
+                </button>
+                <button
+                  className="native-actions-button is-secondary"
+                  disabled={isSyncingClipboard}
+                  onClick={() => void clearNativeClipboard()}
+                  type="button"
+                >
+                  Clear
+                </button>
+              </div>
+              {clipboard && (
+                <code className="native-path">
+                  {clipboard.formats.length > 0
+                    ? clipboard.formats.join(", ")
+                    : "No clipboard formats"}
+                </code>
+              )}
+            </div>
+{{/if}}
           </aside>
         </section>
 
@@ -402,7 +518,7 @@ export const Home = () => {
         <footer className="stack-footer">
           <span className="stack-label">Stack</span>
           <div className="stack-chips">
-            <span className="stack-chip">React</span>
+            <span className="stack-chip">{{frontendDisplayName}}</span>
 {{#if hasRouter}}
             <span className="stack-chip">{{routerDisplayName}}</span>
 {{/if}}
@@ -414,13 +530,16 @@ export const Home = () => {
             <span className="stack-chip">Electrobun RPC</span>
 {{/if}}
 {{#if hasDatabase}}
-            <span className="stack-chip">SQLite</span>
+            <span className="stack-chip">{{databaseDisplayName}}</span>
 {{/if}}
 {{#if hasSettings}}
             <span className="stack-chip">Settings</span>
 {{/if}}
 {{#if hasNativeFileDialogs}}
             <span className="stack-chip">File dialogs</span>
+{{/if}}
+{{#if hasNativeClipboard}}
+            <span className="stack-chip">Clipboard</span>
 {{/if}}
             <span className="stack-chip">Bun</span>
           </div>

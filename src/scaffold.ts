@@ -65,6 +65,26 @@ const createRouterDisplayName = (stack: StackOptions): string => {
   }
 };
 
+const createDatabaseDisplayName = (stack: StackOptions): string => {
+  switch (stack.database) {
+    case "json-file":
+      return "JSON file";
+    case "sqlite":
+      return "SQLite";
+    case "none":
+      return "No database";
+  }
+};
+
+const createFrontendDisplayName = (stack: StackOptions): string => {
+  switch (stack.frontend) {
+    case "preact":
+      return "Preact";
+    case "react":
+      return "React";
+  }
+};
+
 const pathExists = async (path: string): Promise<boolean> => {
   try {
     await stat(path);
@@ -111,25 +131,37 @@ const templateData = (options: ScaffoldOptions): Record<string, unknown> => ({
   appName: createDisplayName(options.projectName),
   hasAppLock: options.stack.auth === "app-lock",
   hasAppMenu: options.stack.appMenu === "edit",
-  hasDatabase: options.stack.database === "sqlite",
+  hasDatabase: options.stack.database !== "none",
+  hasDesktopSmokeTest: options.stack.testing === "desktop-smoke",
   hasDrizzle: options.stack.orm === "drizzle",
   hasElectrobunRpc: options.stack.api === "electrobun-rpc",
   hasHiddenInsetTitlebar: options.stack.windowStyle === "hidden-inset",
+  hasJsonDatabase: options.stack.database === "json-file",
   hasNavigationGuard: options.stack.navigation === "local-only",
   hasRpcExample: options.stack.examples === "rpc",
   hasSeedData: options.stack.dbSetup === "seed",
   hasShadcn: options.stack.ui === "shadcn",
   hasDatabaseSettings: options.stack.settings === "database",
   hasJsonSettings: options.stack.settings === "json",
-  hasNativeFileDialogs: options.stack.nativeUtils === "file-dialogs",
+  hasNativeClipboard:
+    options.stack.nativeUtils === "clipboard" ||
+    options.stack.nativeUtils === "desktop-kit",
+  hasNativeFileDialogs:
+    options.stack.nativeUtils === "file-dialogs" ||
+    options.stack.nativeUtils === "desktop-kit",
   hasSettings: options.stack.settings !== "none",
+  hasPreactFrontend: options.stack.frontend === "preact",
+  hasReactFrontend: options.stack.frontend === "react",
   hasReactRouter: options.stack.router === "react-router",
+  hasSqlite: options.stack.database === "sqlite",
   hasTailwind: options.stack.styling === "tailwindcss",
   hasTanstackQuery: options.stack.query === "tanstack-query",
   hasTanstackRouter: options.stack.router === "tanstack-router",
-  hasTesting: options.stack.testing === "bun",
+  hasTesting: options.stack.testing !== "none",
   hasTurborepo: options.stack.addons === "turborepo",
   hasRouter: options.stack.router !== "none",
+  databaseDisplayName: createDatabaseDisplayName(options.stack),
+  frontendDisplayName: createFrontendDisplayName(options.stack),
   homeFilePath:
     options.stack.router === "tanstack-router"
       ? "src/views/main/routes/index.tsx"
@@ -161,6 +193,12 @@ const optionTemplateDirectories = (
 
   if (stack.database === "sqlite") {
     directories.push(join(templateDirectory, "options", "database", "sqlite"));
+  }
+
+  if (stack.database === "json-file") {
+    directories.push(
+      join(templateDirectory, "options", "database", "json-file"),
+    );
   }
 
   if (stack.orm === "drizzle") {
@@ -203,6 +241,13 @@ const optionTemplateDirectories = (
 
   if (stack.testing === "bun") {
     directories.push(join(templateDirectory, "options", "testing", "bun"));
+  }
+
+  if (stack.testing === "desktop-smoke") {
+    directories.push(join(templateDirectory, "options", "testing", "bun"));
+    directories.push(
+      join(templateDirectory, "options", "testing", "desktop-smoke"),
+    );
   }
 
   return directories;

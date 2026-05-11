@@ -31,28 +31,37 @@
     "drizzle-orm": "^0.45.2",
 {{/if}}
     "electrobun": "^1.16.0",
+{{#if hasPreactFrontend}}
+    "preact": "^10.29.1"{{#if hasTailwind}},{{/if}}
+{{else}}
     "react": "^19.2.0",
-{{#if hasTailwind}}
-    "react-dom": "^19.2.0",
+    "react-dom": "^19.2.0"{{#if hasTailwind}},{{/if}}
+{{/if}}
 {{#if hasShadcn}}
     "shadcn": "^3.6.2",
     "tw-animate-css": "^1.3.4",
 {{/if}}
+{{#if hasTailwind}}
     "tailwindcss": "^4.1.10"
-{{else}}
-    "react-dom": "^19.2.0"
 {{/if}}
   },
   "devDependencies": {
+{{#if hasPreactFrontend}}
+    "@preact/preset-vite": "^2.10.5",
+{{/if}}
     "@biomejs/biome": "2.4.15",
 {{#if hasTanstackRouter}}
     "@tanstack/router-plugin": "^1.166.6",
 {{/if}}
     "@types/bun": "^1.3.8",
+{{#if hasReactFrontend}}
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+{{/if}}
     "@types/three": "^0.181.0",
+{{#if hasReactFrontend}}
     "@vitejs/plugin-react": "^5.1.1",
+{{/if}}
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
 {{#if hasTailwind}}

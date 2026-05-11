@@ -22,6 +22,22 @@ export type MainViewRPC = {
         response: Shared.FileDialogResult;
       };
       {{/if}}
+      {{#if hasNativeClipboard}}
+      clearClipboard: {
+        params: null;
+        response: Shared.ClipboardStatus;
+      };
+      readClipboard: {
+        params: null;
+        response: Shared.ClipboardStatus;
+      };
+      writeClipboard: {
+        params: {
+          text: string;
+        };
+        response: Shared.ClipboardStatus;
+      };
+      {{/if}}
       {{#if hasRpcExample}}
       greet: {
         params: {

@@ -9,10 +9,18 @@ export type FileDialogResult = {
   paths: Array<string>;
 };
 {{/if}}
+{{#if hasNativeClipboard}}
+
+export type ClipboardStatus = {
+  formats: Array<string>;
+  text: string | null;
+  updatedAt: string;
+};
+{{/if}}
 {{#if hasDatabase}}
 
 export type DatabaseStatus = {
-  driver: "bun:sqlite" | "drizzle";
+  driver: "bun:sqlite" | "drizzle" | "json-file";
   path: string;
   records: number;
 };

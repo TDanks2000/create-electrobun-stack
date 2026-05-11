@@ -1,12 +1,19 @@
 import { fileURLToPath, URL } from "node:url";
+{{#if hasPreactFrontend}}
+import preact from "@preact/preset-vite";
+{{/if}}
 {{#if hasTailwind}}
 import tailwindcss from "@tailwindcss/vite";
 {{/if}}
 {{#if hasTanstackRouter}}
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 {{/if}}
+{{#if hasReactFrontend}}
 import react from "@vitejs/plugin-react";
+{{/if}}
 import { defineConfig } from "vite";
+
+const rendererPlugin = {{#if hasPreactFrontend}}preact{{else}}react{{/if}}();
 
 export default defineConfig({
   base: "./",
@@ -27,13 +34,13 @@ export default defineConfig({
 {{#if hasTailwind}}
     tailwindcss(),
 {{/if}}
-    react(),
+    rendererPlugin,
   ],
 {{else}}
 {{#if hasTailwind}}
-  plugins: [tailwindcss(), react()],
+  plugins: [tailwindcss(), rendererPlugin],
 {{else}}
-  plugins: [react()],
+  plugins: [rendererPlugin],
 {{/if}}
 {{/if}}
   resolve: {

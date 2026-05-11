@@ -41,6 +41,7 @@ templates/minimal/
     app-menu/
       edit/
     database/
+      json-file/
       sqlite/
     orm/
       drizzle/
@@ -53,6 +54,7 @@ templates/minimal/
       tailwindcss/
     testing/
       bun/
+      desktop-smoke/
     ui/
       shadcn/
 ```
@@ -62,7 +64,7 @@ templates/minimal/
 `base` is always rendered. It contains the common Electrobun app:
 
 - Bun entrypoint and window creation.
-- React renderer entrypoint.
+- React or Preact renderer entrypoint.
 - Shared constants and types.
 - Optional RPC, router, query, settings, and styling branches controlled by Handlebars data.
 - Generated README tailored to selected stack flags.
@@ -83,6 +85,10 @@ Adds `src/bun/menu.ts`. The base Bun entrypoint calls it when `--app-menu edit` 
 ### `database/sqlite`
 
 Adds a Bun SQLite client and database status surface.
+
+### `database/json-file`
+
+Adds a local JSON record store and database status surface.
 
 ### `orm/drizzle`
 
@@ -112,6 +118,10 @@ Plain CSS is handled by the base style templates.
 
 Adds `tests/manifest.test.ts`. The base package and TypeScript templates add the script and include path when testing is enabled.
 
+### `testing/desktop-smoke`
+
+Adds `tests/desktop-smoke.test.ts`. The scaffold also renders `testing/bun` first so desktop smoke projects keep the generated manifest test.
+
 ### `ui/shadcn`
 
 Adds `components.json` and enables shadcn-related config branches in the base templates.
@@ -125,13 +135,19 @@ Template data is built in `src/scaffold.ts`. Important booleans include:
 - `hasTanstackRouter`
 - `hasReactRouter`
 - `hasTanstackQuery`
+- `hasPreactFrontend`
+- `hasReactFrontend`
 - `hasTailwind`
 - `hasShadcn`
 - `hasDatabase`
+- `hasJsonDatabase`
+- `hasSqlite`
 - `hasDrizzle`
 - `hasJsonSettings`
 - `hasDatabaseSettings`
+- `hasNativeClipboard`
 - `hasNativeFileDialogs`
+- `hasDesktopSmokeTest`
 - `hasAppMenu`
 - `hasNavigationGuard`
 - `hasHiddenInsetTitlebar`

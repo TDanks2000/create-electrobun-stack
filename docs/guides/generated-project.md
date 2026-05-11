@@ -17,6 +17,7 @@ my-app/
   tsconfig.json
   tests/
     manifest.test.ts
+    desktop-smoke.test.ts
   src/
     bun/
       index.ts
@@ -48,7 +49,7 @@ my-app/
           app.css
 ```
 
-That layout matches the default stack: TanStack Router, Electrobun RPC, app menu, local navigation rules, Tailwind CSS, and Bun tests. Options can add files such as `src/bun/db/client.ts`, `src/bun/settings/store.ts`, `components.json`, and `turbo.json`, or omit default files when you choose alternatives like `--router none`, `--app-menu none`, or `--testing none`.
+That layout matches the default stack with the optional desktop smoke test shown for reference. The default stack is TanStack Router, Electrobun RPC, app menu, local navigation rules, Tailwind CSS, and Bun tests. Options can add files such as `src/bun/db/client.ts`, `src/bun/settings/store.ts`, `tests/desktop-smoke.test.ts`, `components.json`, and `turbo.json`, or omit default files when you choose alternatives like `--router none`, `--app-menu none`, or `--testing none`.
 
 ## Runtime Model
 
@@ -89,7 +90,7 @@ bun run lint
 bun test
 ```
 
-`bun test` exists only when the project was created with `--testing bun`.
+`bun test` exists when the project was created with `--testing bun` or `--testing desktop-smoke`.
 
 ## Where To Add Code
 
@@ -107,6 +108,10 @@ Add RPC contract types in `src/shared/rpc/schema.ts`, handler implementation in 
 
 ### Routing
 
+With `--frontend react`, all router choices are available.
+
+With `--frontend preact`, use `--router none`; the generated Preact renderer mounts `Home` directly.
+
 With `--router tanstack-router`, edit files under `src/views/main/routes`. The generated route tree is produced by the TanStack Router Vite plugin.
 
 With `--router react-router`, edit routes in `src/views/main/app.tsx`.
@@ -119,11 +124,15 @@ With `--api electrobun-rpc`, renderer-to-Bun calls go through the generated type
 
 With `--api none`, the generated app omits BrowserWindow RPC wiring. Add RPC later with `create-electrobun-stack add --api electrobun-rpc` if you want the generator to lay down the bridge files.
 
-### SQLite And Drizzle
+### Databases And Drizzle
 
 With `--database sqlite`, the Bun process owns the database client in `src/bun/db/client.ts`.
 
+With `--database json-file`, the Bun process owns a local JSON record store at `data/app-db.json`.
+
 With `--orm drizzle`, use the generated schema in `src/bun/db/schema.ts` and the Drizzle commands in `package.json`.
+
+With `--db-setup seed`, the generated database client inserts starter metadata when the database is empty.
 
 ### Settings
 
@@ -136,6 +145,18 @@ With `--settings database`, settings persist in SQLite. If Drizzle is enabled, t
 With `--window-style hidden-inset`, the native window uses hidden inset chrome and the renderer includes a draggable header.
 
 With `--app-menu edit`, `src/bun/menu.ts` installs native edit roles so common text shortcuts work.
+
+### Native Utilities
+
+With `--native-utils file-dialogs`, the generated RPC surface includes `openFileDialog`.
+
+With `--native-utils clipboard`, the generated RPC surface includes clipboard read, write, and clear requests.
+
+With `--native-utils desktop-kit`, both native utility examples are enabled.
+
+### Desktop Smoke Tests
+
+With `--testing desktop-smoke`, `tests/desktop-smoke.test.ts` mocks `electrobun/bun`, imports the generated window code, creates the main window, and verifies launch options without opening a real OS window.
 
 ## Manifest
 

@@ -93,7 +93,8 @@ button {
 }
 
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+textarea:focus-visible {
   outline: 2px solid var(--lime);
   outline-offset: 3px;
 }
@@ -539,9 +540,32 @@ h2 {
   opacity: 0.88;
 }
 
+.native-actions-button.is-secondary {
+  color: var(--ink);
+  background: transparent;
+}
+
 .native-actions-button:disabled {
   cursor: wait;
   opacity: 0.55;
+}
+
+.native-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.native-textarea {
+  width: 100%;
+  min-height: 78px;
+  resize: vertical;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 10px;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.24);
+  line-height: 1.45;
 }
 
 .native-path {

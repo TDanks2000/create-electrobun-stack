@@ -9,16 +9,20 @@ export type CesFeatureFlags = {
   bunPackageManager: boolean;
   bunRuntime: boolean;
   bunTest: boolean;
+  desktopSmokeTest: boolean;
   drizzle: boolean;
   editMenu: boolean;
   electrobun: boolean;
   electrobunRpc: boolean;
   databaseSettings: boolean;
   hiddenInsetTitlebar: boolean;
+  jsonDatabase: boolean;
   jsonSettings: boolean;
+  nativeClipboard: boolean;
   nativeFileDialogs: boolean;
   localNavigationGuard: boolean;
   plainCss: boolean;
+  preact: boolean;
   react: boolean;
   reactRouter: boolean;
   rpcExample: boolean;
@@ -86,17 +90,23 @@ const createFeatureFlags = (stack: StackOptions): CesFeatureFlags => ({
   biome: true,
   bunPackageManager: stack.packageManager === "bun",
   bunRuntime: stack.runtime === "bun",
-  bunTest: stack.testing === "bun",
+  bunTest: stack.testing !== "none",
+  desktopSmokeTest: stack.testing === "desktop-smoke",
   drizzle: stack.orm === "drizzle",
   editMenu: stack.appMenu === "edit",
   electrobun: true,
   electrobunRpc: stack.api === "electrobun-rpc",
   databaseSettings: stack.settings === "database",
   hiddenInsetTitlebar: stack.windowStyle === "hidden-inset",
+  jsonDatabase: stack.database === "json-file",
   jsonSettings: stack.settings === "json",
-  nativeFileDialogs: stack.nativeUtils === "file-dialogs",
+  nativeClipboard:
+    stack.nativeUtils === "clipboard" || stack.nativeUtils === "desktop-kit",
+  nativeFileDialogs:
+    stack.nativeUtils === "file-dialogs" || stack.nativeUtils === "desktop-kit",
   localNavigationGuard: stack.navigation === "local-only",
   plainCss: stack.styling === "css",
+  preact: stack.frontend === "preact",
   react: stack.frontend === "react",
   reactRouter: stack.router === "react-router",
   rpcExample: stack.examples === "rpc",
@@ -108,7 +118,7 @@ const createFeatureFlags = (stack: StackOptions): CesFeatureFlags => ({
   tanstackRouter: stack.router === "tanstack-router",
   turborepo: stack.addons === "turborepo",
   typescript: true,
-  vite: stack.frontend === "react",
+  vite: stack.frontend === "react" || stack.frontend === "preact",
 });
 
 const quoteCommandArg = (value: string): string =>
@@ -124,8 +134,12 @@ const createExamplesList = (stack: StackOptions): Array<string> =>
 const createAddonsList = (stack: StackOptions): Array<string> => {
   const addons = ["biome", "electrobun"];
 
-  if (stack.testing === "bun") {
+  if (stack.testing !== "none") {
     addons.push("bun-test");
+  }
+
+  if (stack.testing === "desktop-smoke") {
+    addons.push("desktop-smoke-test");
   }
 
   if (stack.appMenu === "edit") {
@@ -148,8 +162,22 @@ const createAddonsList = (stack: StackOptions): Array<string> => {
     addons.push("tanstack-query");
   }
 
-  if (stack.nativeUtils === "file-dialogs") {
+  if (
+    stack.nativeUtils === "file-dialogs" ||
+    stack.nativeUtils === "desktop-kit"
+  ) {
     addons.push("native-file-dialogs");
+  }
+
+  if (
+    stack.nativeUtils === "clipboard" ||
+    stack.nativeUtils === "desktop-kit"
+  ) {
+    addons.push("native-clipboard");
+  }
+
+  if (stack.database === "json-file") {
+    addons.push("json-database");
   }
 
   if (stack.settings === "json") {
@@ -286,7 +314,7 @@ export const stackOptionsFromCesManifest = (
   database: manifest.database,
   dbSetup: manifest.dbSetup,
   examples: manifest.examples.includes("rpc") ? "rpc" : "none",
-  frontend: "react",
+  frontend: manifest.frontend.includes("preact") ? "preact" : "react",
   orm: manifest.orm,
   packageManager: manifest.packageManager,
   query:
@@ -307,6 +335,12 @@ export const stackOptionsFromCesManifest = (
   navigation: manifest.navigation,
   nativeUtils:
     manifest.nativeUtils ??
-    (manifest.features.nativeFileDialogs ? "file-dialogs" : "none"),
+    (manifest.features.nativeFileDialogs && manifest.features.nativeClipboard
+      ? "desktop-kit"
+      : manifest.features.nativeFileDialogs
+        ? "file-dialogs"
+        : manifest.features.nativeClipboard
+          ? "clipboard"
+          : "none"),
   windowStyle: manifest.windowStyle,
 });

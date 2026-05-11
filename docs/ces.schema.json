@@ -34,7 +34,7 @@
       "type": "string"
     },
     "database": {
-      "enum": ["none", "sqlite"]
+      "enum": ["none", "sqlite", "json-file"]
     },
     "dbSetup": {
       "enum": ["none", "seed"]
@@ -53,7 +53,7 @@
     },
     "frontend": {
       "items": {
-        "enum": ["react"]
+        "enum": ["react", "preact"]
       },
       "type": "array"
     },
@@ -64,7 +64,7 @@
       "type": "boolean"
     },
     "nativeUtils": {
-      "enum": ["none", "file-dialogs"]
+      "enum": ["none", "file-dialogs", "clipboard", "desktop-kit"]
     },
     "orm": {
       "enum": ["none", "drizzle"]
@@ -100,7 +100,7 @@
       "enum": ["minimal", "standard", "full"]
     },
     "testing": {
-      "enum": ["bun", "none"]
+      "enum": ["bun", "desktop-smoke", "none"]
     },
     "ui": {
       "enum": ["none", "shadcn"]
