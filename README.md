@@ -135,13 +135,13 @@ Some options add commands. For example, `--addons turborepo` adds `bun run check
 ## Docs
 
 - [Docs index](./docs/README.md): where to start.
-- [CLI reference](./docs/cli.md): every command and operational flag.
-- [Stack options](./docs/options.md): what each option adds and where to find it after scaffolding.
-- [Generated project guide](./docs/generated-project.md): file structure, app lifecycle, and maintenance workflow.
-- [Add command](./docs/add-command.md): how to grow an existing generated app.
-- [Manifest reference](./docs/manifest.md): `ces.json` fields and schema.
-- [Templates](./docs/templates.md): how template overlays are organized.
-- [V1 release plan](./docs/v1-plan.md): release gates for moving from pre-release to `1.0.0`.
+- [CLI reference](./docs/reference/cli.md): every command and operational flag.
+- [Stack options](./docs/reference/options.md): what each option adds and where to find it after scaffolding.
+- [Manifest reference](./docs/reference/manifest.md): `ces.json` fields and schema.
+- [Generated project guide](./docs/guides/generated-project.md): file structure, app lifecycle, and maintenance workflow.
+- [Add command](./docs/guides/add-command.md): how to grow an existing generated app.
+- [Templates](./docs/internals/templates.md): how template overlays are organized.
+- [V1 release plan](./docs/roadmap/v1-plan.md): release gates for moving from pre-release to `1.0.0`.
 - [LLM guide](./docs/llm.txt): compact agent-oriented reference.
 
 ## Development

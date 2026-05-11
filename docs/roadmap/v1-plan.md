@@ -30,19 +30,19 @@ The release is ready when:
 
 Goal: decide what V1 promises and avoid accidental breaking changes after release.
 
-Status: completed in the repo. Evidence lives in `docs/cli.md`, `docs/options.md`, `docs/manifest.md`, `docs/add-command.md`, `src/cli.ts`, `src/prompts.ts`, and `tests/cli.test.ts`.
+Status: completed in the repo. Evidence lives in `docs/reference/cli.md`, `docs/reference/options.md`, `docs/reference/manifest.md`, `docs/guides/add-command.md`, `src/cli.ts`, `src/prompts.ts`, and `tests/cli.test.ts`.
 
 - Freeze the V1 CLI command shape:
   - `create-electrobun-stack <project>`
   - `create-electrobun-stack add`
   - `--dry-run`, `--yes`, `--cwd`, `--install`, `--git`, and stack flags.
-- Mark the V1-supported stack options in `docs/options.md`.
+- Mark the V1-supported stack options in `docs/reference/options.md`.
 - Decide whether `minimal`, `standard`, and `full` should remain aliases for V1 or whether only `minimal` should be advertised.
 - Document the compatibility rules for `ces.json`:
   - V1 manifests are additive.
   - Existing generated apps should keep working with future `add` features.
   - Breaking manifest migrations require a documented migration path.
-- Add a short compatibility policy to `docs/manifest.md`.
+- Add a short compatibility policy to `docs/reference/manifest.md`.
 
 Exit criteria:
 
@@ -54,7 +54,7 @@ Exit criteria:
 
 Goal: make the stack chooser feel complete before V1 without adding new categories or padding the CLI with weak options.
 
-Status: scoped for V1. The option set includes multiple meaningful choices in the categories that are ready for V1, and intentionally narrow categories are documented in `docs/options.md`. Post-V1 option expansion is tracked in GitHub issue #3.
+Status: scoped for V1. The option set includes multiple meaningful choices in the categories that are ready for V1, and intentionally narrow categories are documented in `docs/reference/options.md`. Post-V1 option expansion is tracked in GitHub issue #3.
 
 Use these rules for the V1 option depth pass:
 
@@ -165,10 +165,10 @@ Goal: make the first-run path clear and keep generated project docs accurate.
 Status: completed for the pre-RC documentation pass. The V1 public contract, option boundaries, manifest compatibility, generated-project lifecycle, troubleshooting notes, release checks, and changelog are represented in docs. The generated-project guide now reflects the actual default layout, including route, menu, and test files. The final pass should be repeated after RC feedback and before `1.0.0`.
 
 - Verify root README commands against the packed package.
-- Keep `docs/cli.md` aligned with `parseArgs`.
-- Keep `docs/options.md` aligned with `src/options.ts`.
-- Keep `docs/manifest.md` and `docs/ces.schema.json` aligned with generated manifests.
-- Make `docs/generated-project.md` describe the actual default app lifecycle.
+- Keep `docs/reference/cli.md` aligned with `parseArgs`.
+- Keep `docs/reference/options.md` aligned with `src/options.ts`.
+- Keep `docs/reference/manifest.md` and `docs/ces.schema.json` aligned with generated manifests.
+- Make `docs/guides/generated-project.md` describe the actual default app lifecycle.
 - Update `docs/llm.txt` after any option or behavior change.
 - Add troubleshooting notes for:
   - Bun version mismatch,

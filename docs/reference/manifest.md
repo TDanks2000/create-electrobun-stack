@@ -9,7 +9,7 @@ The manifest is used for:
 - Letting `create-electrobun-stack add` expand the project later.
 - Giving tools and LLMs a structured source of truth for generated features.
 
-The schema is published in this repository at [ces.schema.json](./ces.schema.json). Generated manifests point `$schema` at the package version on unpkg.
+The schema is published in this repository at [ces.schema.json](../ces.schema.json). Generated manifests point `$schema` at the package version on unpkg.
 
 ## Compatibility Policy
 
@@ -170,5 +170,5 @@ If a new stack option is added to the generator, update:
 - `src/manifest.ts`
 - `docs/ces.schema.json`
 - This page
-- `docs/options.md`
+- `docs/reference/options.md`
 - `docs/llm.txt`
