@@ -9,6 +9,16 @@ Scaffold a production-minded Electrobun desktop app with Bun, React, Preact, Sve
 
 The generator is intentionally explicit: every selected stack option is written to `ces.json`, the generated project README explains what was scaffolded, and the `add` command can use that manifest to enable missing features without asking you to remember the original command.
 
+## What It Generates
+
+- Electrobun native process powered by Bun.
+- React, Preact, Svelte, or static SvelteKit renderer.
+- Vite build pipeline with TypeScript and Biome.
+- Optional TanStack Router, React Router, TanStack Query, Tailwind CSS, and shadcn setup for React projects.
+- Optional SQLite, Drizzle, JSON-file persistence, seeded data, and typed settings storage.
+- Optional native file dialogs, clipboard helpers, app-lock UI, desktop smoke tests, and Turborepo wiring.
+- Optional AppImage, deb, DMG collection, and NSIS packaging helpers around Electrobun release artifacts.
+
 ## Quick Start
 
 ```bash
@@ -29,6 +39,12 @@ Use the local command while developing this repository:
 
 ```bash
 bun run src/index.ts my-app
+```
+
+Use `--yes` for non-interactive defaults and `--dry-run` to inspect the resolved stack without writing files:
+
+```bash
+bunx --bun create-electrobun-stack@latest my-app --yes --dry-run
 ```
 
 ## Default Stack
@@ -92,6 +108,14 @@ Preview the resolved stack without writing files:
 bunx create-electrobun-stack my-app --dry-run
 ```
 
+Create a React app with shadcn and TanStack Query:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --ui shadcn \
+  --query tanstack-query
+```
+
 Create with SQLite, Drizzle, and database-backed settings:
 
 ```bash
@@ -133,6 +157,15 @@ bunx create-electrobun-stack my-app \
   --router none
 ```
 
+Create with installer packaging helpers for release artifacts:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --build-env stable \
+  --build-targets all \
+  --packaging installers
+```
+
 Create with JSON-file persistence and desktop smoke tests:
 
 ```bash
@@ -148,12 +181,6 @@ Add file dialogs and clipboard utilities:
 bunx create-electrobun-stack my-app --native-utils desktop-kit
 ```
 
-Add AppImage, deb, DMG, and NSIS packaging helpers:
-
-```bash
-bunx create-electrobun-stack my-app --packaging installers
-```
-
 Start small and add a feature later:
 
 ```bash
@@ -165,18 +192,30 @@ bunx create-electrobun-stack add --orm drizzle
 
 ## Generated Commands
 
-Most generated projects expose:
+Most generated projects expose the core workflow below. The final screen printed by the CLI shows the exact commands for the selected package manager.
 
 ```bash
 bun run dev
-bun run build
 bun run typecheck
 bun run lint
-bun run format
 bun test
+bun run build
 ```
 
-Some options add commands. For example, `--addons turborepo` adds `bun run check`, `--orm drizzle` adds Drizzle scripts, and `--packaging installers` adds `bun run package:release` plus platform-specific packaging commands.
+Some options add commands:
+
+- `--addons turborepo` adds `bun run check`.
+- `--orm drizzle` adds Drizzle generate/migration commands.
+- `--testing desktop-smoke` keeps `bun test` and adds a mocked desktop launch smoke test.
+- `--packaging installers` adds `bun run package:release`, `bun run package:linux`, `bun run package:mac`, and `bun run package:windows`.
+
+The generated project includes:
+
+- `README.md` with the selected stack and commands.
+- `ces.json` with the reproducible command and feature flags.
+- `src/bun/index.ts` as the native Bun entrypoint.
+- `src/views/main/` or `src/views/main/routes/` as the renderer entrypoint.
+- `scripts/package-electrobun.ts` when installer packaging is enabled.
 
 ## Docs
 

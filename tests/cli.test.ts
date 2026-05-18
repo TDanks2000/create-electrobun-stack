@@ -360,12 +360,15 @@ describe("CLI process", () => {
     expect(result.stdout).toContain("2. pnpm install");
     expect(result.stdout).toContain("Install dependencies");
     expect(result.stdout).toContain("3. pnpm dev");
-    expect(result.stdout).toContain("Start the Electrobun app");
-    expect(result.stdout).toContain("Useful commands:");
+    expect(result.stdout).toContain("Run the desktop app in dev mode");
+    expect(result.stdout).toContain("Verify:");
     expect(result.stdout).toContain("pnpm typecheck");
     expect(result.stdout).toContain("pnpm lint");
     expect(result.stdout).toContain("pnpm build");
     expect(result.stdout).not.toContain("pnpm test");
+    expect(result.stdout).toContain("Generated files:");
+    expect(result.stdout).toContain("ces.json");
+    expect(result.stdout).toContain("Grow this stack later:");
   });
 
   test("adds requested features to an existing stack from ces.json", async () => {
@@ -618,10 +621,18 @@ describe("final screen", () => {
 
     expect(lines).toContain("Dependencies: installed");
     expect(lines).toContain("Git: initialized");
-    expect(lines).toContain("1. cd sample-app  Enter the project");
-    expect(lines).toContain("2. bun run dev    Start the Electrobun app");
+    expect(lines).toContain("1. cd sample-app  Open the project directory");
+    expect(lines).toContain(
+      "2. bun run dev    Run the desktop app in dev mode",
+    );
     expect(lines.join("\n")).not.toContain("bun install");
     expect(lines.join("\n")).toContain("bun test");
+    expect(lines).toContain("Generated files:");
+    expect(lines.join("\n")).toContain("src/views/main/");
+    expect(lines).toContain("Grow this stack later:");
+    expect(lines.join("\n")).toContain(
+      "bunx --bun create-electrobun-stack add --help",
+    );
   });
 
   test("uses Turborepo check wording that matches the testing stack", () => {
@@ -641,6 +652,27 @@ describe("final screen", () => {
 
     expect(output).toContain("bun run check  Run typecheck and lint");
     expect(output).not.toContain("and tests");
+  });
+
+  test("highlights SvelteKit routes and installer packaging helpers", () => {
+    const lines = createFinalScreen({
+      gitInitialized: false,
+      installAttempted: false,
+      installed: false,
+      projectName: "sample-app",
+      stack: {
+        ...defaultStackOptions,
+        frontend: "sveltekit",
+        packaging: "installers",
+        router: "none",
+      },
+      targetDirectory: join(repoRoot, "sample-app"),
+    });
+    const output = lines.join("\n");
+
+    expect(output).toContain("src/views/main/routes/");
+    expect(output).toContain("scripts/package-electrobun.ts");
+    expect(output).toContain("bun run package:release");
   });
 });
 

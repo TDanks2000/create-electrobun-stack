@@ -417,6 +417,109 @@ const formatNextStepRows = (
   );
 };
 
+const getAddHelpCommand = (stack: StackOptions): string =>
+  stack.packageManager === "bun"
+    ? "bunx --bun create-electrobun-stack add --help"
+    : "npx create-electrobun-stack add --help";
+
+const createVerificationRows = (
+  stack: StackOptions,
+): Array<{ command: string; detail: string }> => {
+  const buildCommand = getRunCommand(stack.packageManager, "build");
+  const checkCommand = getRunCommand(stack.packageManager, "check");
+  const lintCommand = getRunCommand(stack.packageManager, "lint");
+  const packageCommand = getRunCommand(stack.packageManager, "package:release");
+  const testCommand = getRunCommand(stack.packageManager, "test");
+  const typecheckCommand = getRunCommand(stack.packageManager, "typecheck");
+
+  if (stack.addons === "turborepo") {
+    return [
+      {
+        command: checkCommand,
+        detail:
+          stack.testing !== "none"
+            ? "Run typecheck, lint, and tests"
+            : "Run typecheck and lint",
+      },
+      {
+        command: buildCommand,
+        detail: "Build the desktop app",
+      },
+      ...(stack.packaging === "installers"
+        ? [
+            {
+              command: packageCommand,
+              detail: "Build installer artifacts",
+            },
+          ]
+        : []),
+    ];
+  }
+
+  return [
+    {
+      command: typecheckCommand,
+      detail: "Check TypeScript",
+    },
+    {
+      command: lintCommand,
+      detail: "Run Biome checks",
+    },
+    ...(stack.testing !== "none"
+      ? [
+          {
+            command: testCommand,
+            detail: "Run tests",
+          },
+        ]
+      : []),
+    {
+      command: buildCommand,
+      detail: "Build the desktop app",
+    },
+    ...(stack.packaging === "installers"
+      ? [
+          {
+            command: packageCommand,
+            detail: "Build installer artifacts",
+          },
+        ]
+      : []),
+  ];
+};
+
+const createProjectFileRows = (
+  stack: StackOptions,
+): Array<{ command: string; detail: string }> => [
+  {
+    command: "README.md",
+    detail: "Generated stack guide",
+  },
+  {
+    command: "ces.json",
+    detail: "Reproducible stack manifest",
+  },
+  {
+    command: "src/bun/index.ts",
+    detail: "Native Bun entrypoint",
+  },
+  {
+    command:
+      stack.frontend === "sveltekit"
+        ? "src/views/main/routes/"
+        : "src/views/main/",
+    detail: "Renderer entrypoint",
+  },
+  ...(stack.packaging === "installers"
+    ? [
+        {
+          command: "scripts/package-electrobun.ts",
+          detail: "Installer packaging helper",
+        },
+      ]
+    : []),
+];
+
 export const createFinalScreen = ({
   gitInitialized,
   installAttempted,
@@ -434,16 +537,10 @@ export const createFinalScreen = ({
 }): Array<string> => {
   const installCommand = getInstallCommand(stack.packageManager);
   const devCommand = getRunCommand(stack.packageManager, "dev");
-  const buildCommand = getRunCommand(stack.packageManager, "build");
-  const checkCommand = getRunCommand(stack.packageManager, "check");
-  const lintCommand = getRunCommand(stack.packageManager, "lint");
-  const packageCommand = getRunCommand(stack.packageManager, "package:release");
-  const testCommand = getRunCommand(stack.packageManager, "test");
-  const typecheckCommand = getRunCommand(stack.packageManager, "typecheck");
   const nextSteps = [
     {
       command: `cd ${getDisplayPath(targetDirectory)}`,
-      detail: "Enter the project",
+      detail: "Open the project directory",
     },
     ...(installed
       ? []
@@ -457,62 +554,11 @@ export const createFinalScreen = ({
         ]),
     {
       command: devCommand,
-      detail: "Start the Electrobun app",
+      detail: "Run the desktop app in dev mode",
     },
   ];
-  const usefulCommands =
-    stack.addons === "turborepo"
-      ? [
-          {
-            command: checkCommand,
-            detail:
-              stack.testing !== "none"
-                ? "Run typecheck, lint, and tests"
-                : "Run typecheck and lint",
-          },
-          {
-            command: buildCommand,
-            detail: "Build the desktop app",
-          },
-          ...(stack.packaging === "installers"
-            ? [
-                {
-                  command: packageCommand,
-                  detail: "Build installer artifacts",
-                },
-              ]
-            : []),
-        ]
-      : [
-          {
-            command: typecheckCommand,
-            detail: "Check TypeScript",
-          },
-          {
-            command: lintCommand,
-            detail: "Run Biome checks",
-          },
-          ...(stack.testing !== "none"
-            ? [
-                {
-                  command: testCommand,
-                  detail: "Run tests",
-                },
-              ]
-            : []),
-          {
-            command: buildCommand,
-            detail: "Build the desktop app",
-          },
-          ...(stack.packaging === "installers"
-            ? [
-                {
-                  command: packageCommand,
-                  detail: "Build installer artifacts",
-                },
-              ]
-            : []),
-        ];
+  const verificationRows = createVerificationRows(stack);
+  const projectFileRows = createProjectFileRows(stack);
 
   return [
     `Project: ${projectName}`,
@@ -526,8 +572,14 @@ export const createFinalScreen = ({
     "Next steps:",
     ...formatNextStepRows(nextSteps),
     "",
-    "Useful commands:",
-    ...formatCommandRows(usefulCommands),
+    "Verify:",
+    ...formatCommandRows(verificationRows),
+    "",
+    "Generated files:",
+    ...formatCommandRows(projectFileRows),
+    "",
+    "Grow this stack later:",
+    `  ${getAddHelpCommand(stack)}`,
   ];
 };
 
