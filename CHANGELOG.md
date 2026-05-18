@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1
+
+### Changed
+
+- Refreshes the README with the current generated stack surface, common recipes, generated commands, and key generated files.
+- Improves the post-create final screen with clearer next steps, verification commands, generated file pointers, and add-command guidance.
+
 ## 1.2.0
 
 ### Added

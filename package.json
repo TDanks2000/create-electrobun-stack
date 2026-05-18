@@ -1,6 +1,6 @@
 {
   "name": "create-electrobun-stack",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Scaffold a modern Electrobun desktop app.",
   "type": "module",
   "main": "./dist/index.mjs",
