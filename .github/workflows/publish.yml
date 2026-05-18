@@ -16,7 +16,7 @@ on:
         default: next
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 env:
@@ -74,19 +74,28 @@ jobs:
       - name: Smoke test packed package
         run: bun run pack:smoke
 
+      - name: Resolve package version
+        id: package-version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Generate GitHub release notes from changelog
+        run: bun scripts/changelog-section.ts "${{ steps.package-version.outputs.version }}" > release-notes.md
+
       - name: Resolve npm publish tag
         id: publish-tag
         run: |
-          version="$(node -p "require('./package.json').version")"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.npm_tag }}" ]; then
             tag="${{ inputs.npm_tag }}"
-          elif [[ "$version" == *-* ]]; then
+          elif [[ "${{ steps.package-version.outputs.version }}" == *-* ]]; then
             tag="next"
           else
             tag="latest"
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "Resolved npm dist-tag '$tag' for version '$version'."
+          echo "Resolved npm dist-tag '$tag' for version '${{ steps.package-version.outputs.version }}'."
 
       - name: Publish to npm
         if: github.event_name == 'release' || inputs.dry_run == false
@@ -95,3 +104,21 @@ jobs:
       - name: Skip publish
         if: github.event_name == 'workflow_dispatch' && inputs.dry_run
         run: echo "Dry run completed; no package was published."
+
+      - name: Create GitHub release from changelog
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run == false
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.package-version.outputs.tag }}" \
+            --target "$GITHUB_SHA" \
+            --title "${{ steps.package-version.outputs.tag }}" \
+            --notes-file release-notes.md
+
+      - name: Update GitHub release notes from changelog
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "${{ github.event.release.tag_name }}" \
+            --notes-file release-notes.md

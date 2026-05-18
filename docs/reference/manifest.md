@@ -23,10 +23,10 @@ Breaking manifest migrations require a documented migration path before release.
 
 ```json
 {
-  "$schema": "https://unpkg.com/create-electrobun-stack@1.1.0/docs/ces.schema.json",
-  "version": "1.1.0",
+  "$schema": "https://unpkg.com/create-electrobun-stack@1.2.0/docs/ces.schema.json",
+  "version": "1.2.0",
   "createdAt": "2026-05-10T00:00:00.000Z",
-  "reproducibleCommand": "bunx create-electrobun-stack@1.1.0 my-app --template minimal ...",
+  "reproducibleCommand": "bunx create-electrobun-stack@1.2.0 my-app --template minimal ...",
   "projectName": "my-app",
   "packageName": "my-app",
   "appIdentifier": "dev.electrobun.myapp",
