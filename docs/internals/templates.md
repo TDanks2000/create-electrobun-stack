@@ -190,6 +190,6 @@ When adding a scaffold option:
 4. Add template data in `src/scaffold.ts`.
 5. Add a new option directory only when the option needs new files or an overlay.
 6. Update tests in `tests/cli.test.ts`.
-7. Update `README.md`, `docs/reference/cli.md`, `docs/reference/options.md`, `docs/guides/generated-project.md`, `docs/reference/manifest.md`, and `docs/llm.txt`.
+7. Update `README.md`, `docs/reference/cli.md`, `docs/reference/options.md`, `docs/guides/generated-project.md`, `docs/reference/manifest.md`, and `docs/llms.txt`.
 
 Keep option overlays narrow. A template directory should own a feature, not a broad refactor of unrelated base files.

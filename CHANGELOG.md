@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.2
+
+### Changed
+
+- Renames the compact agent reference from `docs/llm.txt` to `docs/llms.txt` and updates documentation links.
+
+### Removed
+
+- Removes the completed V1 release plan document from the published docs.
+
 ## 1.2.1
 
 ### Changed

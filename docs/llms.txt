@@ -1,4 +1,4 @@
-create-electrobun-stack LLM guide
+create-electrobun-stack LLMs guide
 
 Purpose:
 Scaffold an Electrobun desktop app with Bun, React, Preact, Svelte, or SvelteKit, TypeScript, Vite, Biome, typed Electrobun RPC, and optional integrations. The generated project includes ces.json so future tooling can understand and expand the stack.

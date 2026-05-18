@@ -23,10 +23,10 @@ Breaking manifest migrations require a documented migration path before release.
 
 ```json
 {
-  "$schema": "https://unpkg.com/create-electrobun-stack@1.2.1/docs/ces.schema.json",
-  "version": "1.2.1",
+  "$schema": "https://unpkg.com/create-electrobun-stack@1.2.2/docs/ces.schema.json",
+  "version": "1.2.2",
   "createdAt": "2026-05-10T00:00:00.000Z",
-  "reproducibleCommand": "bunx create-electrobun-stack@1.2.1 my-app --template minimal ...",
+  "reproducibleCommand": "bunx create-electrobun-stack@1.2.2 my-app --template minimal ...",
   "projectName": "my-app",
   "packageName": "my-app",
   "appIdentifier": "dev.electrobun.myapp",
@@ -187,4 +187,4 @@ If a new stack option is added to the generator, update:
 - `docs/ces.schema.json`
 - This page
 - `docs/reference/options.md`
-- `docs/llm.txt`
+- `docs/llms.txt`

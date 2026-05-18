@@ -226,8 +226,7 @@ The generated project includes:
 - [Generated project guide](./docs/guides/generated-project.md): file structure, app lifecycle, and maintenance workflow.
 - [Add command](./docs/guides/add-command.md): how to grow an existing generated app.
 - [Templates](./docs/internals/templates.md): how template overlays are organized.
-- [V1 release plan](./docs/roadmap/v1-plan.md): release gates for moving from pre-release to `1.0.0`.
-- [LLM guide](./docs/llm.txt): compact agent-oriented reference.
+- [LLMs guide](./docs/llms.txt): compact agent-oriented reference.
 
 ## Development
 
