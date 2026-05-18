@@ -128,6 +128,8 @@ describe("parseArgs", () => {
       "all",
       "--package-manager",
       "pnpm",
+      "--packaging",
+      "installers",
       "--auth",
       "app-lock",
       "--addons",
@@ -155,6 +157,7 @@ describe("parseArgs", () => {
     expect(options.stack.buildEnv).toBe("stable");
     expect(options.stack.buildTargets).toBe("all");
     expect(options.stack.packageManager).toBe("pnpm");
+    expect(options.stack.packaging).toBe("installers");
     expect(options.stack.auth).toBe("app-lock");
     expect(options.stack.addons).toBe("turborepo");
     expect(options.stack.dbSetup).toBe("seed");
@@ -192,6 +195,20 @@ describe("parseArgs", () => {
     expect(options.stack.router).toBe("none");
     expect(options.stack.query).toBe("none");
     expect(options.stack.ui).toBe("none");
+  });
+
+  test("uses direct rendering defaults for Svelte frontends", () => {
+    const svelte = parseArgs(["sample-app", "--frontend", "svelte"]);
+    const sveltekit = parseArgs(["sample-app", "--frontend", "sveltekit"]);
+
+    expect(svelte.stack.frontend).toBe("svelte");
+    expect(svelte.stack.router).toBe("none");
+    expect(svelte.stack.query).toBe("none");
+    expect(svelte.stack.ui).toBe("none");
+    expect(sveltekit.stack.frontend).toBe("sveltekit");
+    expect(sveltekit.stack.router).toBe("none");
+    expect(sveltekit.stack.query).toBe("none");
+    expect(sveltekit.stack.ui).toBe("none");
   });
 
   test("rejects unsupported stack combinations", () => {
@@ -258,7 +275,7 @@ describe("parseArgs", () => {
         ...defaultStackOptions,
         frontend: "preact",
       }),
-    ).toThrow("Preact renderer currently supports direct rendering");
+    ).toThrow("Non-React renderers currently use");
   });
 });
 
@@ -541,6 +558,37 @@ describe("CLI process", () => {
     });
   });
 
+  test("add command can enable installer packaging", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      testing: "none",
+    });
+    const result = await runCliProcess([
+      "add",
+      "--cwd",
+      target,
+      "--packaging",
+      "installers",
+      "--no-install",
+    ]);
+    const packageJson = await readGenerated(target, "package.json");
+    const packagingScript = await readGenerated(
+      target,
+      "scripts/package-electrobun.ts",
+    );
+    const manifest = await readGeneratedManifest(target);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("packaging: none -> installers");
+    expect(packageJson).toContain('"package:release"');
+    expect(packageJson).toContain('"package:linux"');
+    expect(packagingScript).toContain('"appimage"');
+    expect(packagingScript).toContain("dpkg-deb");
+    expect(manifest.packaging).toBe("installers");
+    expect(manifest.addons).toContain("installer-packaging");
+    expect(manifest.features.installerPackaging).toBe(true);
+  });
+
   test("add command requires ces.json", async () => {
     const root = await makeTempRoot();
     const result = await runCliProcess([
@@ -653,6 +701,7 @@ describe("generated minimal template", () => {
         dbSetup: "seed",
         nativeUtils: "desktop-kit",
         orm: "drizzle",
+        packaging: "installers",
         query: "tanstack-query",
         router: "react-router",
         settings: "database",
@@ -677,6 +726,16 @@ describe("generated minimal template", () => {
         frontend: "preact",
         router: "none",
         testing: "desktop-smoke",
+      },
+      {
+        ...defaultStackOptions,
+        frontend: "svelte",
+        router: "none",
+      },
+      {
+        ...defaultStackOptions,
+        frontend: "sveltekit",
+        router: "none",
       },
     ] satisfies Array<typeof defaultStackOptions>;
 
@@ -765,6 +824,7 @@ describe("generated minimal template", () => {
     expect(manifest.reproducibleCommand).toContain("--native-utils none");
     expect(manifest.reproducibleCommand).toContain("--window-style native");
     expect(manifest.reproducibleCommand).toContain("--settings none");
+    expect(manifest.reproducibleCommand).toContain("--packaging none");
     expect(manifest.reproducibleCommand).toContain("--no-install");
     expect(manifest.projectName).toBe("sample-app");
     expect(manifest.packageName).toBe("sample-app");
@@ -789,6 +849,7 @@ describe("generated minimal template", () => {
     expect(manifest.windowStyle).toBe("native");
     expect(manifest.buildEnv).toBe("dev");
     expect(manifest.buildTargets).toBe("current");
+    expect(manifest.packaging).toBe("none");
     expect(manifest.settings).toBe("none");
     expect(manifest.features).toMatchObject({
       databaseSettings: false,
@@ -797,6 +858,7 @@ describe("generated minimal template", () => {
       electrobun: true,
       electrobunRpc: true,
       hiddenInsetTitlebar: false,
+      installerPackaging: false,
       jsonDatabase: false,
       jsonSettings: false,
       localNavigationGuard: true,
@@ -814,6 +876,36 @@ describe("generated minimal template", () => {
       tanstackQuery: false,
       tanstackRouter: true,
     });
+  });
+
+  test("renders installer packaging helpers when requested", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      packaging: "installers",
+    });
+    const packageJson = await readGenerated(target, "package.json");
+    const tsconfig = await readGenerated(target, "tsconfig.json");
+    const readme = await readGenerated(target, "README.md");
+    const packagingScript = await readGenerated(
+      target,
+      "scripts/package-electrobun.ts",
+    );
+    const manifest = await readGeneratedManifest(target);
+
+    expect(packageJson).toContain('"package:release"');
+    expect(packageJson).toContain("electrobun build --env=stable");
+    expect(packageJson).toContain('"package:linux"');
+    expect(packageJson).toContain('"package:mac"');
+    expect(packageJson).toContain('"package:windows"');
+    expect(tsconfig).toContain('"scripts"');
+    expect(readme).toContain("## Installer Packaging");
+    expect(readme).toContain("AppImage requires `appimagetool`");
+    expect(packagingScript).toContain("appimagetool");
+    expect(packagingScript).toContain("dpkg-deb");
+    expect(packagingScript).toContain("makensis");
+    expect(manifest.packaging).toBe("installers");
+    expect(manifest.addons).toContain("installer-packaging");
+    expect(manifest.features.installerPackaging).toBe(true);
   });
 
   test("renders without renderer routing when requested", async () => {
@@ -882,6 +974,93 @@ describe("generated minimal template", () => {
     expect(manifest.features).toMatchObject({
       preact: true,
       react: false,
+      vite: true,
+    });
+  });
+
+  test("renders Svelte direct renderer when requested", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      frontend: "svelte",
+      router: "none",
+    });
+    const packageJson = await readGenerated(target, "package.json");
+    const main = await readGenerated(target, "src/views/main/main.ts");
+    const home = await readGenerated(target, "src/views/main/Home.svelte");
+    const index = await readGenerated(target, "src/views/main/index.html");
+    const viteConfig = await readGenerated(target, "vite.config.ts");
+    const readme = await readGenerated(target, "README.md");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(packageJson).toContain('"svelte"');
+    expect(packageJson).toContain('"@sveltejs/vite-plugin-svelte"');
+    expect(packageJson).toContain('"svelte-check"');
+    expect(packageJson).not.toContain('"react"');
+    expect(packageJson).not.toContain('"react-dom"');
+    expect(main).toContain('import { mount } from "svelte"');
+    expect(index).toContain("./main.ts");
+    expect(home).toContain('<script lang="ts">');
+    expect(home).not.toContain("{{");
+    expect(viteConfig).toContain(
+      'import { svelte } from "@sveltejs/vite-plugin-svelte"',
+    );
+    expect(viteConfig).toContain("svelte({ configFile: false })");
+    expect(readme).toContain("- Svelte + Vite renderer");
+    expect(manifest.frontend).toEqual(["svelte"]);
+    expect(manifest.router).toBe("none");
+    expect(manifest.features).toMatchObject({
+      react: false,
+      svelte: true,
+      svelteKit: false,
+      vite: true,
+    });
+  });
+
+  test("renders SvelteKit static renderer when requested", async () => {
+    const target = await renderMinimal({
+      ...defaultStackOptions,
+      frontend: "sveltekit",
+      router: "none",
+    });
+    const packageJson = await readGenerated(target, "package.json");
+    const svelteConfig = await readGenerated(target, "svelte.config.js");
+    const layout = await readGenerated(
+      target,
+      "src/views/main/routes/+layout.svelte",
+    );
+    const routeOptions = await readGenerated(
+      target,
+      "src/views/main/routes/+layout.ts",
+    );
+    const page = await readGenerated(
+      target,
+      "src/views/main/routes/+page.svelte",
+    );
+    const appTemplate = await readGenerated(target, "src/views/main/app.html");
+    const viteConfig = await readGenerated(target, "vite.config.ts");
+    const readme = await readGenerated(target, "README.md");
+    const manifest = await readGeneratedManifest(target);
+
+    expect(packageJson).toContain('"@sveltejs/kit"');
+    expect(packageJson).toContain('"@sveltejs/adapter-static"');
+    expect(packageJson).toContain("svelte-kit sync && svelte-check");
+    expect(svelteConfig).toContain('pages: ".electrobun/views/main"');
+    expect(svelteConfig).toContain('"@": "src"');
+    expect(layout).toContain("../styles/globals.css");
+    expect(routeOptions).toContain("export const prerender = true");
+    expect(routeOptions).toContain("export const ssr = false");
+    expect(page).toContain("../Home.svelte");
+    expect(appTemplate).toContain("%sveltekit.body%");
+    expect(viteConfig).toContain('from "@sveltejs/kit/vite"');
+    expect(viteConfig).not.toContain('root: "src/views/main"');
+    expect(readme).toContain("- SvelteKit + Vite renderer");
+    expect(readme).toContain("- SvelteKit file routing");
+    expect(manifest.frontend).toEqual(["sveltekit"]);
+    expect(manifest.router).toBe("none");
+    expect(manifest.features).toMatchObject({
+      react: false,
+      svelte: false,
+      svelteKit: true,
       vite: true,
     });
   });

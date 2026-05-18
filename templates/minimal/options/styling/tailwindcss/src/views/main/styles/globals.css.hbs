@@ -5,7 +5,11 @@
 {{/if}}
 @import "./app.css";
 
+{{#if hasSvelteFamilyFrontend}}
+@source "../**/*.{ts,tsx,svelte}";
+{{else}}
 @source "../**/*.{ts,tsx}";
+{{/if}}
 
 {{#if hasShadcn}}
 @custom-variant dark (&:is(.dark *));

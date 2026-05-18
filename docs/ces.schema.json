@@ -53,7 +53,7 @@
     },
     "frontend": {
       "items": {
-        "enum": ["react", "preact"]
+        "enum": ["react", "preact", "svelte", "sveltekit"]
       },
       "type": "array"
     },
@@ -74,6 +74,9 @@
     },
     "packageName": {
       "type": "string"
+    },
+    "packaging": {
+      "enum": ["none", "installers"]
     },
     "projectName": {
       "type": "string"
@@ -140,6 +143,7 @@
     "examples",
     "auth",
     "packageManager",
+    "packaging",
     "dbSetup",
     "api",
     "navigation",

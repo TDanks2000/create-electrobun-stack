@@ -82,7 +82,7 @@ The command reads `ces.json`, applies only the flags you pass, infers required p
 | Option | Values | Default |
 | --- | --- | --- |
 | `--template` | `minimal`, `standard`, `full` | `minimal` |
-| `--frontend` | `react`, `preact` | `react` |
+| `--frontend` | `react`, `preact`, `svelte`, `sveltekit` | `react` |
 | `--router` | `tanstack-router`, `react-router`, `none` | `tanstack-router` |
 | `--query` | `none`, `tanstack-query` | `none` |
 | `--runtime` | `bun` | `bun` |
@@ -94,6 +94,7 @@ The command reads `ces.json`, applies only the flags you pass, infers required p
 | `--db-setup` | `none`, `seed` | `none` |
 | `--settings` | `none`, `json`, `database` | `none` |
 | `--package-manager` | `bun`, `npm`, `pnpm`, `yarn` | `bun` |
+| `--packaging` | `none`, `installers` | `none` |
 | `--testing` | `bun`, `desktop-smoke`, `none` | `bun` |
 | `--addons` | `none`, `turborepo` | `none` |
 | `--examples` | `rpc`, `none` | `rpc` |
@@ -121,8 +122,8 @@ The CLI fails before files are written when unsupported combinations are selecte
 - `--native-utils file-dialogs` requires `--api electrobun-rpc`.
 - `--native-utils clipboard` and `--native-utils desktop-kit` require `--api electrobun-rpc`.
 - `--examples rpc` requires `--api electrobun-rpc`.
-- `--ui shadcn` requires `--styling tailwindcss`.
-- `--frontend preact` currently requires `--router none`, `--query none`, and `--ui none`.
+- `--ui shadcn` requires `--styling tailwindcss` and `--frontend react`.
+- `--frontend preact`, `--frontend svelte`, and `--frontend sveltekit` currently require `--router none`, `--query none`, and `--ui none`.
 
 The `add` command can infer some prerequisites. For example, `add --orm drizzle` enables SQLite if it was missing, and `add --ui shadcn` enables Tailwind CSS if the app was created with plain CSS.
 
@@ -171,6 +172,22 @@ Use Preact with direct rendering:
 ```bash
 bunx create-electrobun-stack my-app \
   --frontend preact \
+  --router none
+```
+
+Use Svelte with direct rendering:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --frontend svelte \
+  --router none
+```
+
+Use SvelteKit with static file routing:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --frontend sveltekit \
   --router none
 ```
 
@@ -224,6 +241,12 @@ Use native clipboard plus file dialogs:
 bunx create-electrobun-stack my-app --native-utils desktop-kit
 ```
 
+Add installer packaging helpers:
+
+```bash
+bunx create-electrobun-stack my-app --packaging installers
+```
+
 Add desktop launch smoke tests:
 
 ```bash
@@ -272,5 +295,6 @@ Options may add commands:
 
 - `--addons turborepo` adds `bun run check`.
 - `--orm drizzle` adds `bun run db:generate` and `bun run db:studio`.
+- `--packaging installers` adds `bun run package:release`, `bun run package:linux`, `bun run package:mac`, and `bun run package:windows`.
 - `--testing desktop-smoke` keeps `bun test` and adds `tests/desktop-smoke.test.ts`.
 - `--testing none` omits `bun test`.

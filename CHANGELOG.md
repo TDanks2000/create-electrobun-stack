@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Adds `--frontend svelte` and `--frontend sveltekit` renderer modes with prompts, CLI help, manifest/schema support, generated templates, and validation coverage.
+- Adds `--packaging installers` for generated AppImage, deb, DMG collection, and NSIS packaging helpers around Electrobun release artifacts.
+
 ## 1.1.0
 
 ### Added

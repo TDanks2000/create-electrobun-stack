@@ -1,0 +1,526 @@
+<script lang="ts">
+{{#if hasElectrobunRpc}}
+  import { onMount } from "svelte";
+{{/if}}
+  import { APP_NAME } from "../../shared/constants";
+{{#if hasElectrobunRpc}}
+  import type * as Shared from "../../shared/types";
+  import { rpc } from "./lib/rpc";
+{{/if}}
+
+  const launchSteps = [
+    {
+      accent: "lime",
+      command: "{{homeFilePath}}",
+      detail: "Replace this file with the workflow your users repeat.",
+      id: "loop",
+      label: "Shape the loop",
+    },
+    {
+      accent: "cyan",
+      command: "src/bun/rpc/router.ts",
+      detail: "Expose the native actions that make the interface feel local.",
+      id: "runtime",
+      label: "Wire the bridge",
+    },
+    {
+      accent: "orange",
+      command: "{{#if hasDatabase}}src/bun/db/client.ts{{else}}src/shared/types.ts{{/if}}",
+      detail: "Promote temporary state into typed records, settings, or files.",
+      id: "state",
+      label: "Anchor state",
+    },
+    {
+      accent: "ink",
+      command: "{{commands.build}}",
+      detail: "Package the first build and walk through a real session.",
+      id: "ship",
+      label: "Cut a build",
+    },
+  ] as const;
+
+  type LaunchStepId = (typeof launchSteps)[number]["id"];
+
+  let completedSteps = new Set<LaunchStepId>();
+  let activeStepId: LaunchStepId = "loop";
+{{#if hasElectrobunRpc}}
+  let environment: Shared.AppEnvironment | null = null;
+{{/if}}
+{{#if hasAppLock}}
+  let unlockInput = "";
+  let isUnlocked = false;
+{{/if}}
+{{#if hasRpcExample}}
+  let greeting = "Connecting to Bun runtime...";
+{{/if}}
+{{#if hasElectrobunRpc}}
+{{#if hasDatabase}}
+  let database: Shared.DatabaseStatus | null = null;
+{{/if}}
+{{#if hasSettings}}
+  let settings: Shared.SettingsStatus | null = null;
+  let isSavingSetting = false;
+  const themeOptions = ["system", "light", "dark"] as const;
+{{/if}}
+{{#if hasNativeFileDialogs}}
+  let selectedPaths: Array<string> = [];
+  let isOpeningFileDialog = false;
+{{/if}}
+{{#if hasNativeClipboard}}
+  let clipboard: Shared.ClipboardStatus | null = null;
+  let clipboardText = `Copied from ${APP_NAME}.`;
+  let isSyncingClipboard = false;
+{{/if}}
+{{/if}}
+{{#if hasElectrobunRpc}}
+  $: isReady = environment !== null;
+{{else}}
+  const isReady = true;
+{{/if}}
+  $: completedCount = completedSteps.size;
+  $: totalSteps = launchSteps.length;
+  $: progressPct = Math.round((completedCount / totalSteps) * 100);
+  $: progressStyle = `width: ${progressPct}%`;
+{{#if hasElectrobunRpc}}
+
+  onMount(() => {
+    let mounted = true;
+
+    const load = async () => {
+      const environmentRequest = rpc.request.getEnvironment(null);
+{{#if hasRpcExample}}
+      const greetingRequest = rpc.request.greet({ name: APP_NAME });
+{{/if}}
+{{#if hasDatabase}}
+      const databaseRequest = rpc.request.getDatabaseStatus(null);
+{{/if}}
+{{#if hasSettings}}
+      const settingsRequest = rpc.request.getSettingsStatus(null);
+{{/if}}
+{{#if hasNativeClipboard}}
+      const clipboardRequest = rpc.request.readClipboard(null);
+{{/if}}
+
+      const environmentResult = await environmentRequest;
+{{#if hasRpcExample}}
+      const greetingResult = await greetingRequest;
+{{/if}}
+{{#if hasDatabase}}
+      const databaseResult = await databaseRequest;
+{{/if}}
+{{#if hasSettings}}
+      const settingsResult = await settingsRequest;
+{{/if}}
+{{#if hasNativeClipboard}}
+      const clipboardResult = await clipboardRequest;
+{{/if}}
+
+      if (!mounted) {
+        return;
+      }
+
+      environment = environmentResult;
+{{#if hasRpcExample}}
+      greeting = greetingResult.greeting;
+{{/if}}
+{{#if hasDatabase}}
+      database = databaseResult;
+{{/if}}
+{{#if hasSettings}}
+      settings = settingsResult;
+{{/if}}
+{{#if hasNativeClipboard}}
+      clipboard = clipboardResult;
+      clipboardText = clipboardResult.text ?? `Copied from ${APP_NAME}.`;
+{{/if}}
+{{#if hasRpcExample}}
+      rpc.send.logToBun({ message: "Renderer loaded and called Bun RPC." });
+{{/if}}
+    };
+
+    void load();
+
+    return () => {
+      mounted = false;
+    };
+  });
+{{#if hasSettings}}
+
+  const saveSetting = async (key: string, value: Shared.SettingValue) => {
+    isSavingSetting = true;
+
+    try {
+      settings = await rpc.request.updateSetting({ key, value });
+    } finally {
+      isSavingSetting = false;
+    }
+  };
+{{/if}}
+{{#if hasNativeFileDialogs}}
+
+  const openNativeFileDialog = async () => {
+    isOpeningFileDialog = true;
+
+    try {
+      const result = await rpc.request.openFileDialog(null);
+      selectedPaths = result.paths;
+    } finally {
+      isOpeningFileDialog = false;
+    }
+  };
+{{/if}}
+{{#if hasNativeClipboard}}
+
+  const readNativeClipboard = async () => {
+    isSyncingClipboard = true;
+
+    try {
+      const nextClipboard = await rpc.request.readClipboard(null);
+      clipboard = nextClipboard;
+      clipboardText = nextClipboard.text ?? "";
+    } finally {
+      isSyncingClipboard = false;
+    }
+  };
+
+  const writeNativeClipboard = async () => {
+    isSyncingClipboard = true;
+
+    try {
+      clipboard = await rpc.request.writeClipboard({ text: clipboardText });
+    } finally {
+      isSyncingClipboard = false;
+    }
+  };
+
+  const clearNativeClipboard = async () => {
+    isSyncingClipboard = true;
+
+    try {
+      const nextClipboard = await rpc.request.clearClipboard(null);
+      clipboard = nextClipboard;
+      clipboardText = "";
+    } finally {
+      isSyncingClipboard = false;
+    }
+  };
+{{/if}}
+{{/if}}
+
+  const toggleStep = (stepId: LaunchStepId) => {
+    activeStepId = stepId;
+    const next = new Set(completedSteps);
+
+    if (next.has(stepId)) {
+      next.delete(stepId);
+    } else {
+      next.add(stepId);
+    }
+
+    completedSteps = next;
+  };
+{{#if hasAppLock}}
+
+  const unlock = () => {
+    isUnlocked = unlockInput.trim().toLowerCase() === APP_NAME.toLowerCase();
+  };
+{{/if}}
+</script>
+
+{{#if hasAppLock}}
+{#if !isUnlocked}
+  <main class="shell lock-shell">
+    <div class="lock-card">
+      <div class="lock-header">
+        <span class="app-dot" aria-hidden="true"></span>
+        <p class="lock-eyebrow">Local session</p>
+      </div>
+      <h1>{APP_NAME}</h1>
+      <p class="lock-lede">
+        Enter the app name to open your desktop workspace.
+      </p>
+      <form
+        class="lock-form"
+        onsubmit={(event) => {
+          event.preventDefault();
+          unlock();
+        }}
+      >
+        <input
+          aria-label="Unlock phrase"
+          bind:value={unlockInput}
+          placeholder={APP_NAME}
+          type="password"
+        />
+        <button type="submit">Unlock</button>
+      </form>
+    </div>
+  </main>
+{:else}
+{{/if}}
+  <main class="shell">
+{{#if hasHiddenInsetTitlebar}}
+    <div
+      aria-hidden="true"
+      class="window-drag-bar electrobun-webkit-app-region-drag"
+    >
+      <span>{APP_NAME}</span>
+    </div>
+{{/if}}
+    <div class="workspace">
+      <header class="top-bar">
+        <div class="app-identity">
+          <span class="app-dot" aria-hidden="true"></span>
+          <span class="app-name-label">{APP_NAME}</span>
+        </div>
+        <div
+          class={`status-indicator${isReady ? " is-ready" : ""}`}
+          role="status"
+        >
+          <span class="status-dot" aria-hidden="true"></span>
+{{#if hasElectrobunRpc}}
+          {isReady ? "Runtime connected" : "Connecting"}
+{{else}}
+          Renderer ready
+{{/if}}
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="hero-text">
+          <p class="hero-overline">Electrobun Stack</p>
+          <h1>{APP_NAME}</h1>
+{{#if hasRpcExample}}
+          <p class="hero-lede">{greeting}</p>
+{{else}}
+{{#if hasElectrobunRpc}}
+          <p class="hero-lede">
+            A local-first desktop app with {{frontendDisplayName}}, a typed
+            native runtime bridge, and {{#if hasRouter}}{{routerDisplayName}}{{else}}direct
+            view rendering{{/if}}. Your first workflow is one file away.
+          </p>
+{{else}}
+          <p class="hero-lede">
+            A local {{frontendDisplayName}} desktop surface with {{#if hasRouter}}{{routerDisplayName}}{{else}}direct
+            view rendering{{/if}} and enough structure to build the first real workflow.
+          </p>
+{{/if}}
+{{/if}}
+          <div class="hero-progress">
+            <div
+              aria-label={`Launch progress: ${progressPct}%`}
+              aria-valuemax={100}
+              aria-valuemin={0}
+              aria-valuenow={progressPct}
+              class="progress-track"
+              role="progressbar"
+            >
+              <div class="progress-fill" style={progressStyle}></div>
+            </div>
+            <span class="progress-label">
+              {completedCount}/{totalSteps} done
+            </span>
+          </div>
+        </div>
+
+        <aside class="arch-panel" aria-label="Stack architecture">
+          <div class="arch-layer">
+            <div class="arch-layer-info">
+              <span class="arch-layer-name">{{frontendDisplayName}} Renderer</span>
+              <span class="arch-layer-tech">{{routerDisplayName}}</span>
+            </div>
+            <span class="arch-tag view-tag">View</span>
+          </div>
+
+          <div class="arch-layer">
+            <div class="arch-layer-info">
+              <span class="arch-layer-name">RPC Bridge</span>
+              <span class="arch-layer-tech">Electrobun</span>
+            </div>
+{{#if hasElectrobunRpc}}
+            <span class="arch-tag bridge-tag">
+              {isReady ? "Online" : "Pending"}
+            </span>
+{{else}}
+            <span class="arch-tag bridge-tag">Static</span>
+{{/if}}
+          </div>
+
+          <div class="arch-layer">
+            <div class="arch-layer-info">
+              <span class="arch-layer-name">Bun Runtime</span>
+{{#if hasElectrobunRpc}}
+              <span class="arch-layer-tech">
+                {environment?.platform ?? "Native"}
+              </span>
+{{else}}
+              <span class="arch-layer-tech">Native</span>
+{{/if}}
+            </div>
+            <span class="arch-tag runtime-tag">Bun</span>
+          </div>
+{{#if hasDatabase}}
+
+          <div class="arch-layer">
+            <div class="arch-layer-info">
+              <span class="arch-layer-name">Database</span>
+              <span class="arch-layer-tech">
+                {database
+                  ? `${database.driver} · ${database.records} rows`
+                  : "{{databaseDisplayName}}"}
+              </span>
+            </div>
+            <span class="arch-tag db-tag">{{databaseDisplayName}}</span>
+          </div>
+{{/if}}
+{{#if hasSettings}}
+
+          <div class="arch-settings">
+            <span class="arch-settings-label">Theme</span>
+            <fieldset aria-label="Theme setting" class="segmented">
+              {#each themeOptions as theme}
+                <button
+                  class={settings?.values["app.theme"] === theme ? "is-active" : ""}
+                  disabled={isSavingSetting}
+                  onclick={() => void saveSetting("app.theme", theme)}
+                  type="button"
+                >
+                  {theme}
+                </button>
+              {/each}
+            </fieldset>
+          </div>
+{{/if}}
+{{#if hasNativeFileDialogs}}
+
+          <div class="native-actions">
+            <div>
+              <span class="native-actions-label">Native utility</span>
+              <p class="native-actions-copy">
+                Open a local file or folder through Bun.
+              </p>
+            </div>
+            <button
+              class="native-actions-button"
+              disabled={isOpeningFileDialog}
+              onclick={() => void openNativeFileDialog()}
+              type="button"
+            >
+              {isOpeningFileDialog ? "Opening" : "Choose"}
+            </button>
+            {#if selectedPaths.length > 0}
+              <code class="native-path">{selectedPaths[0]}</code>
+            {/if}
+          </div>
+{{/if}}
+{{#if hasNativeClipboard}}
+
+          <div class="native-actions">
+            <div>
+              <span class="native-actions-label">Clipboard</span>
+              <p class="native-actions-copy">
+                Read, write, and clear text through Electrobun utilities.
+              </p>
+            </div>
+            <textarea
+              aria-label="Clipboard text"
+              class="native-textarea"
+              bind:value={clipboardText}
+              rows={3}
+            ></textarea>
+            <div class="native-actions-row">
+              <button
+                class="native-actions-button"
+                disabled={isSyncingClipboard}
+                onclick={() => void writeNativeClipboard()}
+                type="button"
+              >
+                Write
+              </button>
+              <button
+                class="native-actions-button is-secondary"
+                disabled={isSyncingClipboard}
+                onclick={() => void readNativeClipboard()}
+                type="button"
+              >
+                Read
+              </button>
+              <button
+                class="native-actions-button is-secondary"
+                disabled={isSyncingClipboard}
+                onclick={() => void clearNativeClipboard()}
+                type="button"
+              >
+                Clear
+              </button>
+            </div>
+            {#if clipboard}
+              <code class="native-path">
+                {clipboard.formats.length > 0
+                  ? clipboard.formats.join(", ")
+                  : "No clipboard formats"}
+              </code>
+            {/if}
+          </div>
+{{/if}}
+        </aside>
+      </section>
+
+      <section aria-label="Launch sequence" class="steps-section">
+        {#each launchSteps as step, index (step.id)}
+          {@const isDone = completedSteps.has(step.id)}
+          {@const isActive = activeStepId === step.id}
+          <button
+            aria-pressed={isDone}
+            class={`step-card is-${step.accent}${isDone ? " is-done" : ""}${isActive ? " is-active" : ""}`}
+            onclick={() => toggleStep(step.id)}
+            type="button"
+          >
+            <span class="step-num">
+              {isDone ? "✓" : `0${index + 1}`}
+            </span>
+            <strong class="step-label">{step.label}</strong>
+            <span class="step-detail">{step.detail}</span>
+            <code class="step-cmd">{step.command}</code>
+          </button>
+        {/each}
+      </section>
+
+      <footer class="stack-footer">
+        <span class="stack-label">Stack</span>
+        <div class="stack-chips">
+          <span class="stack-chip">{{frontendDisplayName}}</span>
+{{#if hasRouter}}
+          <span class="stack-chip">{{routerDisplayName}}</span>
+{{/if}}
+          <span class="stack-chip">{{#if hasTailwind}}Tailwind CSS{{else}}Plain CSS{{/if}}</span>
+{{#if hasElectrobunRpc}}
+          <span class="stack-chip">Electrobun RPC</span>
+{{/if}}
+{{#if hasDatabase}}
+          <span class="stack-chip">{{databaseDisplayName}}</span>
+{{/if}}
+{{#if hasSettings}}
+          <span class="stack-chip">Settings</span>
+{{/if}}
+{{#if hasNativeFileDialogs}}
+          <span class="stack-chip">File dialogs</span>
+{{/if}}
+{{#if hasNativeClipboard}}
+          <span class="stack-chip">Clipboard</span>
+{{/if}}
+          <span class="stack-chip">Bun</span>
+        </div>
+{{#if hasElectrobunRpc}}
+        {#if environment?.startedAt}
+          <span class="stack-started">
+            Started {environment.startedAt}
+          </span>
+        {/if}
+{{/if}}
+      </footer>
+    </div>
+  </main>
+{{#if hasAppLock}}
+{/if}
+{{/if}}

@@ -1,0 +1,791 @@
+import { spawn } from "node:child_process";
+import {
+  access,
+  chmod,
+  cp,
+  mkdir,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
+import {
+  delimiter,
+  dirname,
+  extname,
+  join,
+  relative,
+  resolve,
+} from "node:path";
+import { pathToFileURL } from "node:url";
+
+type PackageJson = {
+  author?: string | { email?: string; name?: string };
+  description?: string;
+  name?: string;
+  productName?: string;
+  version?: string;
+};
+
+type AppMetadata = {
+  description: string;
+  identifier: string;
+  name: string;
+  packageName: string;
+  slug: string;
+  version: string;
+};
+
+type CliOptions = {
+  artifactDir: string;
+  formats: Array<PackageFormat>;
+  outDir: string;
+};
+
+type LinuxPayload = {
+  executableRelativePath: string;
+  root: string;
+};
+
+type PackageFormat = "appimage" | "deb" | "dmg" | "electrobun" | "nsis";
+
+const packageFormats = [
+  "appimage",
+  "deb",
+  "dmg",
+  "electrobun",
+  "nsis",
+] as const satisfies Array<PackageFormat>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const stringField = (
+  record: Record<string, unknown>,
+  key: string,
+): string | null => (typeof record[key] === "string" ? record[key] : null);
+
+const toPosixPath = (path: string): string => path.replaceAll("\\", "/");
+
+const shellDoubleQuoteEscape = (value: string): string =>
+  value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+
+const nsisStringEscape = (value: string): string =>
+  toPosixPath(value).replaceAll('"', '$\\"');
+
+const createSlug = (value: string): string => {
+  const slug = value
+    .toLowerCase()
+    .replace(/^@/, "")
+    .replaceAll("/", "-")
+    .replace(/[^a-z0-9+.-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return slug || "electrobun-app";
+};
+
+const createDebianVersion = (version: string): string =>
+  version.replace(/[^a-zA-Z0-9.+:~-]/g, "-") || "0.1.0";
+
+const createDebianPackageName = (value: string): string => {
+  const name = createSlug(value).replace(/^[^a-z0-9]+/, "");
+  return /^[a-z0-9]/.test(name) ? name : "electrobun-app";
+};
+
+const createArtifactName = (metadata: AppMetadata, suffix: string): string =>
+  `${metadata.slug}-${metadata.version}${suffix}`;
+
+const readJson = async <Value>(path: string): Promise<Value> =>
+  JSON.parse(await readFile(path, "utf8")) as Value;
+
+const readElectrobunConfigApp = async (): Promise<Record<string, unknown>> => {
+  try {
+    const imported = (await import(
+      pathToFileURL(resolve("electrobun.config.ts")).href
+    )) as Record<string, unknown>;
+    const config = isRecord(imported.default) ? imported.default : imported;
+    return isRecord(config.app) ? config.app : {};
+  } catch {
+    return {};
+  }
+};
+
+const readMetadata = async (): Promise<AppMetadata> => {
+  const packageJson = await readJson<PackageJson>("package.json");
+  const appConfig = await readElectrobunConfigApp();
+  const packageName = packageJson.name ?? "electrobun-app";
+  const name =
+    stringField(appConfig, "name") ?? packageJson.productName ?? packageName;
+  const version =
+    stringField(appConfig, "version") ?? packageJson.version ?? "0.1.0";
+
+  return {
+    description:
+      packageJson.description ??
+      `Desktop application generated from ${packageName}.`,
+    identifier: stringField(appConfig, "identifier") ?? packageName,
+    name,
+    packageName,
+    slug: createSlug(packageName),
+    version,
+  };
+};
+
+const parseFormat = (value: string): PackageFormat => {
+  if (packageFormats.some((format) => format === value)) {
+    return value as PackageFormat;
+  }
+
+  throw new Error(
+    `Unknown package format "${value}". Expected one of: ${packageFormats.join(
+      ", ",
+    )}.`,
+  );
+};
+
+const defaultFormatsForPlatform = (): Array<PackageFormat> => {
+  if (process.platform === "darwin") {
+    return ["electrobun", "dmg"];
+  }
+
+  if (process.platform === "win32") {
+    return ["electrobun", "nsis"];
+  }
+
+  return ["electrobun", "appimage", "deb"];
+};
+
+const parseArgs = (args: Array<string>): CliOptions => {
+  let artifactDir = "artifacts";
+  let outDir = "dist/installers";
+  let formats: Array<PackageFormat> | null = null;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === "--help" || arg === "-h") {
+      console.log(`
+Usage:
+  bun scripts/package-electrobun.ts [options]
+
+Options:
+  --formats <list>     Comma-separated formats: ${packageFormats.join(", ")}
+  --artifacts <path>   Electrobun artifacts directory. Default: artifacts
+  --out <path>         Installer output directory. Default: dist/installers
+`);
+      process.exit(0);
+    }
+
+    if (arg === "--formats") {
+      const value = args[index + 1];
+      if (!value) {
+        throw new Error("Expected --formats to have a value.");
+      }
+      formats = value.split(",").map((format) => parseFormat(format.trim()));
+      index += 1;
+      continue;
+    }
+
+    if (arg?.startsWith("--formats=")) {
+      formats = arg
+        .slice("--formats=".length)
+        .split(",")
+        .map((format) => parseFormat(format.trim()));
+      continue;
+    }
+
+    if (arg === "--artifacts") {
+      const value = args[index + 1];
+      if (!value) {
+        throw new Error("Expected --artifacts to have a value.");
+      }
+      artifactDir = value;
+      index += 1;
+      continue;
+    }
+
+    if (arg?.startsWith("--artifacts=")) {
+      artifactDir = arg.slice("--artifacts=".length);
+      continue;
+    }
+
+    if (arg === "--out") {
+      const value = args[index + 1];
+      if (!value) {
+        throw new Error("Expected --out to have a value.");
+      }
+      outDir = value;
+      index += 1;
+      continue;
+    }
+
+    if (arg?.startsWith("--out=")) {
+      outDir = arg.slice("--out=".length);
+      continue;
+    }
+
+    throw new Error(`Unknown option: ${arg}`);
+  }
+
+  return {
+    artifactDir: resolve(artifactDir),
+    formats: formats ?? defaultFormatsForPlatform(),
+    outDir: resolve(outDir),
+  };
+};
+
+const pathExists = async (path: string): Promise<boolean> => {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const listFiles = async (directory: string): Promise<Array<string>> => {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files: Array<string> = [];
+
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...(await listFiles(path)));
+      continue;
+    }
+
+    files.push(path);
+  }
+
+  return files;
+};
+
+const latestMatchingFile = async (
+  files: Array<string>,
+  predicate: (file: string) => boolean,
+): Promise<string | null> => {
+  const matches = await Promise.all(
+    files.filter(predicate).map(async (path) => ({
+      modifiedAt: (await stat(path)).mtimeMs,
+      path,
+    })),
+  );
+
+  matches.sort(
+    (left, right) =>
+      right.modifiedAt - left.modifiedAt || right.path.localeCompare(left.path),
+  );
+
+  return matches[0]?.path ?? null;
+};
+
+const run = async (
+  command: string,
+  args: Array<string>,
+  cwd = process.cwd(),
+): Promise<void> =>
+  new Promise((resolvePromise, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const output: Array<string> = [];
+
+    child.stdout?.on("data", (chunk: Buffer) => {
+      output.push(chunk.toString("utf8"));
+    });
+
+    child.stderr?.on("data", (chunk: Buffer) => {
+      output.push(chunk.toString("utf8"));
+    });
+
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolvePromise();
+        return;
+      }
+
+      reject(
+        new Error(
+          [
+            `${command} ${args.join(" ")} failed with exit code ${
+              code ?? "unknown"
+            }.`,
+            output.join("").trim(),
+          ]
+            .filter(Boolean)
+            .join("\n"),
+        ),
+      );
+    });
+  });
+
+const commandExists = async (command: string): Promise<boolean> => {
+  const pathEntries = (process.env.PATH ?? "").split(delimiter).filter(Boolean);
+  const extensions =
+    process.platform === "win32" && extname(command) === ""
+      ? (process.env.PATHEXT ?? ".EXE;.CMD;.BAT;.COM").split(";")
+      : [""];
+
+  for (const directory of pathEntries) {
+    for (const extension of extensions) {
+      if (await pathExists(join(directory, `${command}${extension}`))) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
+const requireTool = async (
+  command: string,
+  installHint: string,
+): Promise<void> => {
+  if (await commandExists(command)) {
+    return;
+  }
+
+  throw new Error(`Missing required tool "${command}". ${installHint}`);
+};
+
+const writeExecutable = async (
+  path: string,
+  content: string,
+): Promise<void> => {
+  await writeFile(path, content);
+  await chmod(path, 0o755);
+};
+
+const writeIcon = async (
+  path: string,
+  metadata: AppMetadata,
+): Promise<void> => {
+  const initial = metadata.name.trim().charAt(0).toUpperCase() || "E";
+  await writeFile(
+    path,
+    [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">',
+      '<rect width="128" height="128" rx="24" fill="#121212"/>',
+      `<text x="64" y="83" text-anchor="middle" font-family="sans-serif" font-size="72" font-weight="700" fill="#f6f3ea">${initial}</text>`,
+      "</svg>",
+      "",
+    ].join("\n"),
+  );
+};
+
+const writeDesktopFile = async (
+  path: string,
+  metadata: AppMetadata,
+  executable: string,
+): Promise<void> => {
+  await writeFile(
+    path,
+    [
+      "[Desktop Entry]",
+      "Type=Application",
+      `Name=${metadata.name}`,
+      `Comment=${metadata.description}`,
+      `Exec=${executable} %U`,
+      `Icon=${metadata.slug}`,
+      "Terminal=false",
+      "Categories=Utility;",
+      "",
+    ].join("\n"),
+  );
+};
+
+const extractTarGz = async (
+  archive: string,
+  destination: string,
+): Promise<void> => {
+  await mkdir(destination, { recursive: true });
+  await run("tar", ["-xzf", archive, "-C", destination]);
+};
+
+const extractZip = async (
+  archive: string,
+  destination: string,
+): Promise<void> => {
+  await mkdir(destination, { recursive: true });
+
+  if (process.platform === "win32") {
+    await run("powershell.exe", [
+      "-NoProfile",
+      "-Command",
+      "Expand-Archive",
+      "-LiteralPath",
+      archive,
+      "-DestinationPath",
+      destination,
+      "-Force",
+    ]);
+    return;
+  }
+
+  await run("unzip", ["-q", archive, "-d", destination]);
+};
+
+const findLinuxExecutable = async (
+  directory: string,
+): Promise<string | null> => {
+  const files = await listFiles(directory);
+  const executableFiles: Array<string> = [];
+
+  for (const file of files) {
+    const fileStat = await stat(file);
+
+    if (fileStat.isFile() && (fileStat.mode & 0o111) !== 0) {
+      executableFiles.push(file);
+    }
+  }
+
+  executableFiles.sort(
+    (left, right) =>
+      left.split(/[\\/]/).length - right.split(/[\\/]/).length ||
+      left.localeCompare(right),
+  );
+
+  return executableFiles[0] ?? null;
+};
+
+const prepareLinuxPayload = async (
+  files: Array<string>,
+  workDir: string,
+): Promise<LinuxPayload> => {
+  const archive = await latestMatchingFile(files, (file) => {
+    const name = file.toLowerCase();
+    return name.includes("linux") && name.endsWith(".tar.gz");
+  });
+
+  if (!archive) {
+    throw new Error(
+      "Could not find a Linux Electrobun setup .tar.gz in artifacts. Run a stable or canary Electrobun build on Linux first.",
+    );
+  }
+
+  const root = join(workDir, "linux-payload");
+  await extractTarGz(archive, root);
+  const executable = await findLinuxExecutable(root);
+
+  if (!executable) {
+    throw new Error(`No executable file was found inside ${archive}.`);
+  }
+
+  return {
+    executableRelativePath: toPosixPath(relative(root, executable)),
+    root,
+  };
+};
+
+const writeLinuxWrapper = async (
+  path: string,
+  targetPath: string,
+): Promise<void> => {
+  await writeExecutable(
+    path,
+    [
+      "#!/usr/bin/env sh",
+      "set -eu",
+      `exec "${shellDoubleQuoteEscape(targetPath)}" "$@"`,
+      "",
+    ].join("\n"),
+  );
+};
+
+const buildDeb = async (
+  files: Array<string>,
+  metadata: AppMetadata,
+  outDir: string,
+  workDir: string,
+): Promise<string> => {
+  await requireTool(
+    "dpkg-deb",
+    "Install dpkg-dev or run this target on an Ubuntu/Debian CI runner.",
+  );
+
+  const payload = await prepareLinuxPayload(files, join(workDir, "deb"));
+  const packageName = createDebianPackageName(metadata.slug);
+  const debRoot = join(workDir, "deb-root");
+  const appRoot = join(debRoot, "opt", packageName);
+  const binRoot = join(debRoot, "usr", "bin");
+  const desktopRoot = join(debRoot, "usr", "share", "applications");
+  const iconRoot = join(
+    debRoot,
+    "usr",
+    "share",
+    "icons",
+    "hicolor",
+    "scalable",
+    "apps",
+  );
+  const controlRoot = join(debRoot, "DEBIAN");
+  const executablePath = `/opt/${packageName}/${payload.executableRelativePath}`;
+  const outFile = join(outDir, createArtifactName(metadata, ".deb"));
+
+  await mkdir(binRoot, { recursive: true });
+  await mkdir(desktopRoot, { recursive: true });
+  await mkdir(iconRoot, { recursive: true });
+  await mkdir(controlRoot, { recursive: true });
+  await cp(payload.root, appRoot, { recursive: true });
+  await writeLinuxWrapper(join(binRoot, packageName), executablePath);
+  await writeDesktopFile(
+    join(desktopRoot, `${packageName}.desktop`),
+    { ...metadata, slug: packageName },
+    packageName,
+  );
+  await writeIcon(join(iconRoot, `${packageName}.svg`), {
+    ...metadata,
+    slug: packageName,
+  });
+  await writeFile(
+    join(controlRoot, "control"),
+    [
+      `Package: ${packageName}`,
+      `Version: ${createDebianVersion(metadata.version)}`,
+      `Architecture: ${process.arch === "arm64" ? "arm64" : "amd64"}`,
+      "Section: utils",
+      "Priority: optional",
+      `Maintainer: ${metadata.name} maintainers`,
+      `Description: ${metadata.description}`,
+      "",
+    ].join("\n"),
+  );
+
+  await run("dpkg-deb", ["--build", debRoot, outFile]);
+  return outFile;
+};
+
+const buildAppImage = async (
+  files: Array<string>,
+  metadata: AppMetadata,
+  outDir: string,
+  workDir: string,
+): Promise<string> => {
+  await requireTool(
+    "appimagetool",
+    "Install appimagetool or download it in your Linux release workflow.",
+  );
+
+  const payload = await prepareLinuxPayload(files, join(workDir, "appimage"));
+  const appDir = join(workDir, `${metadata.slug}.AppDir`);
+  const appRoot = join(appDir, "usr", "lib", metadata.slug);
+  const outFile = join(outDir, createArtifactName(metadata, ".AppImage"));
+  const targetPath = `$APPDIR/usr/lib/${metadata.slug}/${payload.executableRelativePath}`;
+
+  await mkdir(dirname(appRoot), { recursive: true });
+  await cp(payload.root, appRoot, { recursive: true });
+  await writeExecutable(
+    join(appDir, "AppRun"),
+    [
+      "#!/usr/bin/env sh",
+      "set -eu",
+      'APPDIR="$(dirname "$(readlink -f "$0")")"',
+      `exec "${shellDoubleQuoteEscape(targetPath)}" "$@"`,
+      "",
+    ].join("\n"),
+  );
+  await writeDesktopFile(
+    join(appDir, `${metadata.slug}.desktop`),
+    metadata,
+    metadata.slug,
+  );
+  await writeIcon(join(appDir, `${metadata.slug}.svg`), metadata);
+  await cp(join(appDir, `${metadata.slug}.svg`), join(appDir, ".DirIcon"));
+  await rm(outFile, { force: true });
+  await run("appimagetool", [appDir, outFile]);
+  return outFile;
+};
+
+const copyDmg = async (
+  files: Array<string>,
+  metadata: AppMetadata,
+  outDir: string,
+): Promise<string> => {
+  const dmg = await latestMatchingFile(files, (file) =>
+    file.toLowerCase().endsWith(".dmg"),
+  );
+
+  if (!dmg) {
+    throw new Error(
+      "Could not find an Electrobun .dmg in artifacts. Run a stable or canary build on macOS first.",
+    );
+  }
+
+  const outFile = join(outDir, createArtifactName(metadata, ".dmg"));
+  await cp(dmg, outFile);
+  return outFile;
+};
+
+const findWindowsSetup = async (
+  files: Array<string>,
+  workDir: string,
+): Promise<string> => {
+  const exe = await latestMatchingFile(files, (file) => {
+    const name = file.toLowerCase();
+    return name.endsWith(".exe") && name.includes("setup");
+  });
+
+  if (exe) {
+    return exe;
+  }
+
+  const zip = await latestMatchingFile(files, (file) => {
+    const name = file.toLowerCase();
+    return name.includes("win") && name.endsWith(".zip");
+  });
+
+  if (!zip) {
+    throw new Error(
+      "Could not find a Windows Electrobun setup .zip or .exe in artifacts. Run a stable or canary Electrobun build on Windows first.",
+    );
+  }
+
+  const extracted = join(workDir, "windows-setup");
+  await extractZip(zip, extracted);
+  const extractedFiles = await listFiles(extracted);
+  const extractedExe = await latestMatchingFile(extractedFiles, (file) => {
+    const name = file.toLowerCase();
+    return name.endsWith(".exe") && name.includes("setup");
+  });
+
+  if (!extractedExe) {
+    throw new Error(`No setup .exe was found inside ${zip}.`);
+  }
+
+  return extractedExe;
+};
+
+const buildNsis = async (
+  files: Array<string>,
+  metadata: AppMetadata,
+  outDir: string,
+  workDir: string,
+): Promise<string> => {
+  await requireTool(
+    "makensis",
+    "Install NSIS and run this target on a Windows runner.",
+  );
+
+  const setupExe = await findWindowsSetup(files, workDir);
+  const nsisAppNameVariable = "$" + "{APP_NAME}";
+  const stagedSetup = join(workDir, "nsis", "ElectrobunSetup.exe");
+  const nsiPath = join(workDir, "installer.nsi");
+  const outFile = join(outDir, createArtifactName(metadata, "-setup.exe"));
+
+  await mkdir(dirname(stagedSetup), { recursive: true });
+  await cp(setupExe, stagedSetup);
+  await writeFile(
+    nsiPath,
+    [
+      `!define APP_NAME "${nsisStringEscape(metadata.name)}"`,
+      `Name "${nsisStringEscape(metadata.name)}"`,
+      `OutFile "${nsisStringEscape(outFile)}"`,
+      `InstallDir "$LOCALAPPDATA\\${nsisStringEscape(metadata.slug)}"`,
+      "RequestExecutionLevel user",
+      'Section "Install"',
+      '  SetOutPath "$INSTDIR"',
+      `  File /oname=ElectrobunSetup.exe "${nsisStringEscape(stagedSetup)}"`,
+      `  CreateDirectory "$SMPROGRAMS\\${nsisAppNameVariable}"`,
+      `  CreateShortcut "$SMPROGRAMS\\${nsisAppNameVariable}\\Run Electrobun Setup.lnk" "$INSTDIR\\ElectrobunSetup.exe"`,
+      '  WriteUninstaller "$INSTDIR\\Uninstall.exe"',
+      "SectionEnd",
+      'Section "Uninstall"',
+      `  Delete "$SMPROGRAMS\\${nsisAppNameVariable}\\Run Electrobun Setup.lnk"`,
+      `  RMDir "$SMPROGRAMS\\${nsisAppNameVariable}"`,
+      '  Delete "$INSTDIR\\ElectrobunSetup.exe"',
+      '  Delete "$INSTDIR\\Uninstall.exe"',
+      '  RMDir "$INSTDIR"',
+      "SectionEnd",
+      "",
+    ].join("\n"),
+  );
+
+  await run("makensis", [nsiPath]);
+  return outFile;
+};
+
+const isElectrobunArtifact = (file: string): boolean => {
+  const name = file.toLowerCase();
+  return (
+    name.endsWith(".dmg") ||
+    name.endsWith(".zip") ||
+    name.endsWith(".tar.gz") ||
+    name.endsWith(".tar.zst") ||
+    name.endsWith(".json") ||
+    name.endsWith(".patch")
+  );
+};
+
+const copyElectrobunArtifacts = async (
+  files: Array<string>,
+  outDir: string,
+): Promise<Array<string>> => {
+  const targetDir = join(outDir, "electrobun");
+  const copied: Array<string> = [];
+
+  await mkdir(targetDir, { recursive: true });
+
+  for (const file of files.filter(isElectrobunArtifact)) {
+    const target = join(targetDir, file.split(/[\\/]/).at(-1) ?? "artifact");
+    await cp(file, target);
+    copied.push(target);
+  }
+
+  return copied;
+};
+
+const main = async (): Promise<void> => {
+  const options = parseArgs(process.argv.slice(2));
+  const metadata = await readMetadata();
+  const workDir = join(options.outDir, ".work");
+
+  if (!(await pathExists(options.artifactDir))) {
+    throw new Error(
+      `Artifacts directory does not exist: ${options.artifactDir}. Run a stable or canary Electrobun build first.`,
+    );
+  }
+
+  await mkdir(options.outDir, { recursive: true });
+  await rm(workDir, { force: true, recursive: true });
+  await mkdir(workDir, { recursive: true });
+
+  const files = await listFiles(options.artifactDir);
+  const outputs: Array<string> = [];
+
+  for (const format of options.formats) {
+    switch (format) {
+      case "appimage":
+        outputs.push(
+          await buildAppImage(files, metadata, options.outDir, workDir),
+        );
+        break;
+      case "deb":
+        outputs.push(await buildDeb(files, metadata, options.outDir, workDir));
+        break;
+      case "dmg":
+        outputs.push(await copyDmg(files, metadata, options.outDir));
+        break;
+      case "electrobun":
+        outputs.push(...(await copyElectrobunArtifacts(files, options.outDir)));
+        break;
+      case "nsis":
+        outputs.push(await buildNsis(files, metadata, options.outDir, workDir));
+        break;
+    }
+  }
+
+  console.log("Installer packaging complete:");
+  for (const output of outputs) {
+    console.log(`- ${relative(process.cwd(), output)}`);
+  }
+};
+
+main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(message);
+  process.exit(1);
+});

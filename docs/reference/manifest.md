@@ -46,6 +46,7 @@ Breaking manifest migrations require a documented migration path before release.
   "examples": ["rpc"],
   "auth": "none",
   "packageManager": "bun",
+  "packaging": "none",
   "dbSetup": "none",
   "settings": "none",
   "api": "electrobun-rpc",
@@ -68,6 +69,7 @@ Breaking manifest migrations require a documented migration path before release.
     "electrobunRpc": true,
     "databaseSettings": false,
     "hiddenInsetTitlebar": false,
+    "installerPackaging": false,
     "jsonDatabase": false,
     "jsonSettings": false,
     "nativeClipboard": false,
@@ -81,6 +83,8 @@ Breaking manifest migrations require a documented migration path before release.
     "shadcn": false,
     "settingsStore": false,
     "sqlite": false,
+    "svelte": false,
+    "svelteKit": false,
     "tanstackQuery": false,
     "tanstackRouter": true,
     "tailwindcss": true,
@@ -103,7 +107,7 @@ Breaking manifest migrations require a documented migration path before release.
 | `packageName` | Generated package name. |
 | `appIdentifier` | Electrobun reverse-DNS app identifier. |
 | `template` | Selected template profile. |
-| `frontend` | Renderer frontend list. Currently `["react"]` or `["preact"]`. |
+| `frontend` | Renderer frontend list. Currently `["react"]`, `["preact"]`, `["svelte"]`, or `["sveltekit"]`. |
 | `runtime` | Runtime selection. Currently `bun`. |
 | `router` | Renderer routing selection. |
 | `query` | Renderer async-state selection. |
@@ -121,6 +125,7 @@ Breaking manifest migrations require a documented migration path before release.
 | `dbSetup` | Database seed/setup selection. |
 | `settings` | Settings persistence selection. |
 | `auth` | Local app surface auth/lock selection. |
+| `packaging` | Extra installer packaging scaffold selection. |
 | `testing` | Test scaffold selection. |
 | `addons` | Enabled addon labels. |
 | `examples` | Enabled example labels. |
@@ -146,6 +151,7 @@ Generated feature booleans include:
 - `electrobunRpc`
 - `databaseSettings`
 - `hiddenInsetTitlebar`
+- `installerPackaging`
 - `jsonDatabase`
 - `jsonSettings`
 - `nativeClipboard`
@@ -159,6 +165,8 @@ Generated feature booleans include:
 - `shadcn`
 - `settingsStore`
 - `sqlite`
+- `svelte`
+- `svelteKit`
 - `tanstackQuery`
 - `tanstackRouter`
 - `tailwindcss`

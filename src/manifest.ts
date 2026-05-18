@@ -16,6 +16,7 @@ export type CesFeatureFlags = {
   electrobunRpc: boolean;
   databaseSettings: boolean;
   hiddenInsetTitlebar: boolean;
+  installerPackaging: boolean;
   jsonDatabase: boolean;
   jsonSettings: boolean;
   nativeClipboard: boolean;
@@ -29,6 +30,8 @@ export type CesFeatureFlags = {
   shadcn: boolean;
   settingsStore: boolean;
   sqlite: boolean;
+  svelte: boolean;
+  svelteKit: boolean;
   tanstackQuery: boolean;
   tailwindcss: boolean;
   tanstackRouter: boolean;
@@ -58,6 +61,7 @@ export type CesManifest = {
   orm: StackOptions["orm"];
   packageManager: StackOptions["packageManager"];
   packageName: string;
+  packaging: StackOptions["packaging"];
   projectName: string;
   query: StackOptions["query"];
   reproducibleCommand: string;
@@ -98,6 +102,7 @@ const createFeatureFlags = (stack: StackOptions): CesFeatureFlags => ({
   electrobunRpc: stack.api === "electrobun-rpc",
   databaseSettings: stack.settings === "database",
   hiddenInsetTitlebar: stack.windowStyle === "hidden-inset",
+  installerPackaging: stack.packaging === "installers",
   jsonDatabase: stack.database === "json-file",
   jsonSettings: stack.settings === "json",
   nativeClipboard:
@@ -113,12 +118,14 @@ const createFeatureFlags = (stack: StackOptions): CesFeatureFlags => ({
   shadcn: stack.ui === "shadcn",
   settingsStore: stack.settings !== "none",
   sqlite: stack.database === "sqlite",
+  svelte: stack.frontend === "svelte",
+  svelteKit: stack.frontend === "sveltekit",
   tanstackQuery: stack.query === "tanstack-query",
   tailwindcss: stack.styling === "tailwindcss",
   tanstackRouter: stack.router === "tanstack-router",
   turborepo: stack.addons === "turborepo",
   typescript: true,
-  vite: stack.frontend === "react" || stack.frontend === "preact",
+  vite: true,
 });
 
 const quoteCommandArg = (value: string): string =>
@@ -192,6 +199,10 @@ const createAddonsList = (stack: StackOptions): Array<string> => {
     addons.push("turborepo");
   }
 
+  if (stack.packaging === "installers") {
+    addons.push("installer-packaging");
+  }
+
   return addons;
 };
 
@@ -243,6 +254,8 @@ const createReproducibleCommand = (options: CesManifestOptions): string => {
     options.stack.settings,
     "--package-manager",
     options.stack.packageManager,
+    "--packaging",
+    options.stack.packaging,
     "--testing",
     options.stack.testing,
     "--addons",
@@ -284,6 +297,7 @@ export const createCesManifest = (
   examples: createExamplesList(options.stack),
   auth: options.stack.auth,
   packageManager: options.stack.packageManager,
+  packaging: options.stack.packaging,
   dbSetup: options.stack.dbSetup,
   settings: options.stack.settings,
   api: options.stack.api,
@@ -314,9 +328,18 @@ export const stackOptionsFromCesManifest = (
   database: manifest.database,
   dbSetup: manifest.dbSetup,
   examples: manifest.examples.includes("rpc") ? "rpc" : "none",
-  frontend: manifest.frontend.includes("preact") ? "preact" : "react",
+  frontend: manifest.frontend.includes("sveltekit")
+    ? "sveltekit"
+    : manifest.frontend.includes("svelte")
+      ? "svelte"
+      : manifest.frontend.includes("preact")
+        ? "preact"
+        : "react",
   orm: manifest.orm,
   packageManager: manifest.packageManager,
+  packaging:
+    manifest.packaging ??
+    (manifest.features.installerPackaging ? "installers" : "none"),
   query:
     manifest.query ??
     (manifest.features.tanstackQuery ? "tanstack-query" : "none"),

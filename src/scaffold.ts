@@ -55,6 +55,10 @@ const createDisplayName = (projectName: string): string =>
     .join(" ");
 
 const createRouterDisplayName = (stack: StackOptions): string => {
+  if (stack.frontend === "sveltekit") {
+    return "SvelteKit file routing";
+  }
+
   switch (stack.router) {
     case "react-router":
       return "React Router";
@@ -82,8 +86,24 @@ const createFrontendDisplayName = (stack: StackOptions): string => {
       return "Preact";
     case "react":
       return "React";
+    case "svelte":
+      return "Svelte";
+    case "sveltekit":
+      return "SvelteKit";
   }
 };
+
+const createPackagingDisplayName = (stack: StackOptions): string => {
+  switch (stack.packaging) {
+    case "installers":
+      return "extended installer packaging";
+    case "none":
+      return "Electrobun artifacts only";
+  }
+};
+
+const isSvelteFamilyFrontend = (stack: StackOptions): boolean =>
+  stack.frontend === "svelte" || stack.frontend === "sveltekit";
 
 const pathExists = async (path: string): Promise<boolean> => {
   try {
@@ -137,6 +157,7 @@ const templateData = (options: ScaffoldOptions): Record<string, unknown> => ({
   hasElectrobunRpc: options.stack.api === "electrobun-rpc",
   hasHiddenInsetTitlebar: options.stack.windowStyle === "hidden-inset",
   hasJsonDatabase: options.stack.database === "json-file",
+  hasInstallerPackaging: options.stack.packaging === "installers",
   hasNavigationGuard: options.stack.navigation === "local-only",
   hasRpcExample: options.stack.examples === "rpc",
   hasSeedData: options.stack.dbSetup === "seed",
@@ -152,6 +173,9 @@ const templateData = (options: ScaffoldOptions): Record<string, unknown> => ({
   hasSettings: options.stack.settings !== "none",
   hasPreactFrontend: options.stack.frontend === "preact",
   hasReactFrontend: options.stack.frontend === "react",
+  hasSvelteFrontend: options.stack.frontend === "svelte",
+  hasSvelteKitFrontend: options.stack.frontend === "sveltekit",
+  hasSvelteFamilyFrontend: isSvelteFamilyFrontend(options.stack),
   hasReactRouter: options.stack.router === "react-router",
   hasSqlite: options.stack.database === "sqlite",
   hasTailwind: options.stack.styling === "tailwindcss",
@@ -159,14 +183,22 @@ const templateData = (options: ScaffoldOptions): Record<string, unknown> => ({
   hasTanstackRouter: options.stack.router === "tanstack-router",
   hasTesting: options.stack.testing !== "none",
   hasTurborepo: options.stack.addons === "turborepo",
-  hasRouter: options.stack.router !== "none",
+  hasRouter:
+    options.stack.router !== "none" || options.stack.frontend === "sveltekit",
   databaseDisplayName: createDatabaseDisplayName(options.stack),
   frontendDisplayName: createFrontendDisplayName(options.stack),
   homeFilePath:
-    options.stack.router === "tanstack-router"
-      ? "src/views/main/routes/index.tsx"
-      : "src/views/main/home.tsx",
+    options.stack.frontend === "sveltekit"
+      ? "src/views/main/routes/+page.svelte"
+      : options.stack.frontend === "svelte"
+        ? "src/views/main/Home.svelte"
+        : options.stack.router === "tanstack-router"
+          ? "src/views/main/routes/index.tsx"
+          : "src/views/main/home.tsx",
   packageManagerSpec: getPackageManagerSpec(options.stack.packageManager),
+  packagingDisplayName: createPackagingDisplayName(options.stack),
+  releaseBuildEnv:
+    options.stack.buildEnv === "dev" ? "stable" : options.stack.buildEnv,
   routerDisplayName: createRouterDisplayName(options.stack),
   commands: {
     build: getRunCommand(options.stack.packageManager, "build"),
@@ -177,6 +209,16 @@ const templateData = (options: ScaffoldOptions): Record<string, unknown> => ({
     format: getRunCommand(options.stack.packageManager, "format"),
     install: getInstallCommand(options.stack.packageManager),
     lint: getRunCommand(options.stack.packageManager, "lint"),
+    packageLinux: getRunCommand(options.stack.packageManager, "package:linux"),
+    packageMac: getRunCommand(options.stack.packageManager, "package:mac"),
+    packageRelease: getRunCommand(
+      options.stack.packageManager,
+      "package:release",
+    ),
+    packageWindows: getRunCommand(
+      options.stack.packageManager,
+      "package:windows",
+    ),
     test: getRunCommand(options.stack.packageManager, "test"),
     typecheck: getRunCommand(options.stack.packageManager, "typecheck"),
   },
@@ -190,6 +232,26 @@ const optionTemplateDirectories = (
   stack: StackOptions,
 ): Array<string> => {
   const directories: Array<string> = [];
+
+  if (stack.frontend === "react" || stack.frontend === "preact") {
+    directories.push(join(templateDirectory, "options", "frontend", "jsx"));
+  }
+
+  if (stack.frontend === "svelte" || stack.frontend === "sveltekit") {
+    directories.push(
+      join(templateDirectory, "options", "frontend", "svelte-common"),
+    );
+  }
+
+  if (stack.frontend === "svelte") {
+    directories.push(join(templateDirectory, "options", "frontend", "svelte"));
+  }
+
+  if (stack.frontend === "sveltekit") {
+    directories.push(
+      join(templateDirectory, "options", "frontend", "sveltekit"),
+    );
+  }
 
   if (stack.database === "sqlite") {
     directories.push(join(templateDirectory, "options", "database", "sqlite"));
@@ -237,6 +299,12 @@ const optionTemplateDirectories = (
 
   if (stack.addons === "turborepo") {
     directories.push(join(templateDirectory, "options", "addons", "turborepo"));
+  }
+
+  if (stack.packaging === "installers") {
+    directories.push(
+      join(templateDirectory, "options", "packaging", "installers"),
+    );
   }
 
   if (stack.testing === "bun") {

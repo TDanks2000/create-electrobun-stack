@@ -5,7 +5,7 @@
 [![Node version](https://img.shields.io/node/v/create-electrobun-stack.svg)](https://www.npmjs.com/package/create-electrobun-stack)
 [![Bun >=1.3.0](https://img.shields.io/badge/Bun-%3E%3D1.3.0-000?logo=bun&logoColor=white)](https://bun.sh)
 
-Scaffold a production-minded Electrobun desktop app with Bun, React or Preact, TypeScript, Vite, Biome, typed Electrobun RPC, and a small set of optional integrations that can be enabled at create time or added later.
+Scaffold a production-minded Electrobun desktop app with Bun, React, Preact, Svelte, or SvelteKit, TypeScript, Vite, Biome, typed Electrobun RPC, optional native utilities, and optional installer packaging helpers that can be enabled at create time or added later.
 
 The generator is intentionally explicit: every selected stack option is written to `ces.json`, the generated project README explains what was scaffolded, and the `add` command can use that manifest to enable missing features without asking you to remember the original command.
 
@@ -70,6 +70,7 @@ bunx create-electrobun-stack my-app \
   --db-setup none \
   --settings none \
   --package-manager bun \
+  --packaging none \
   --testing bun \
   --addons none \
   --examples rpc \
@@ -116,6 +117,22 @@ bunx create-electrobun-stack my-app \
   --router none
 ```
 
+Create a Svelte renderer:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --frontend svelte \
+  --router none
+```
+
+Create a static SvelteKit renderer:
+
+```bash
+bunx create-electrobun-stack my-app \
+  --frontend sveltekit \
+  --router none
+```
+
 Create with JSON-file persistence and desktop smoke tests:
 
 ```bash
@@ -129,6 +146,12 @@ Add file dialogs and clipboard utilities:
 
 ```bash
 bunx create-electrobun-stack my-app --native-utils desktop-kit
+```
+
+Add AppImage, deb, DMG, and NSIS packaging helpers:
+
+```bash
+bunx create-electrobun-stack my-app --packaging installers
 ```
 
 Start small and add a feature later:
@@ -153,7 +176,7 @@ bun run format
 bun test
 ```
 
-Some options add commands. For example, `--addons turborepo` adds `bun run check`, and `--orm drizzle` adds Drizzle scripts.
+Some options add commands. For example, `--addons turborepo` adds `bun run check`, `--orm drizzle` adds Drizzle scripts, and `--packaging installers` adds `bun run package:release` plus platform-specific packaging commands.
 
 ## Docs
 

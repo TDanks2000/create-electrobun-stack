@@ -6,9 +6,10 @@ type ScaffoldStackOptions = {
   database: "none" | "sqlite" | "json-file";
   dbSetup: "none" | "seed";
   examples: "rpc" | "none";
-  frontend: "react" | "preact";
+  frontend: "react" | "preact" | "svelte" | "sveltekit";
   orm: "none" | "drizzle";
   packageManager: "bun" | "npm" | "pnpm" | "yarn";
+  packaging: "none" | "installers";
   query: "none" | "tanstack-query";
   router: "none" | "tanstack-router" | "react-router";
   runtime: "bun";
@@ -54,6 +55,7 @@ const defaultScaffoldStackOptions: ScaffoldStackOptions = {
   frontend: "react",
   orm: "none",
   packageManager: "bun",
+  packaging: "none",
   query: "none",
   router: "tanstack-router",
   runtime: "bun",
@@ -74,9 +76,10 @@ const scaffoldStackOptionChoices = {
   database: ["none", "sqlite", "json-file"],
   dbSetup: ["none", "seed"],
   examples: ["rpc", "none"],
-  frontend: ["react", "preact"],
+  frontend: ["react", "preact", "svelte", "sveltekit"],
   orm: ["none", "drizzle"],
   packageManager: ["bun", "npm", "pnpm", "yarn"],
+  packaging: ["none", "installers"],
   query: ["none", "tanstack-query"],
   router: ["tanstack-router", "react-router", "none"],
   runtime: ["bun"],
@@ -122,6 +125,7 @@ const scaffoldStackFlagNames = {
   frontend: "frontend",
   orm: "orm",
   "package-manager": "packageManager",
+  packaging: "packaging",
   query: "query",
   router: "router",
   runtime: "runtime",
@@ -215,6 +219,9 @@ export const setStackOption = (
     case "packageManager":
       options.packageManager = parseStackOptionValue(optionName, value);
       return;
+    case "packaging":
+      options.packaging = parseStackOptionValue(optionName, value);
+      return;
     case "query":
       options.query = parseStackOptionValue(optionName, value);
       return;
@@ -302,24 +309,24 @@ export const getUnsupportedStackOptions = (
     });
   }
 
-  if (options.frontend === "preact" && options.router !== "none") {
+  if (options.frontend !== "react" && options.router !== "none") {
     unsupported.push({
       flag: `--frontend ${options.frontend} --router ${options.router}`,
-      note: "The Preact renderer currently supports direct rendering without a React router.",
+      note: "Non-React renderers currently use their own direct rendering or framework routing without a React router.",
     });
   }
 
-  if (options.frontend === "preact" && options.query !== "none") {
+  if (options.frontend !== "react" && options.query !== "none") {
     unsupported.push({
       flag: `--frontend ${options.frontend} --query ${options.query}`,
-      note: "The Preact renderer does not include TanStack Query in this template.",
+      note: "TanStack Query is only scaffolded for the React renderer in this template.",
     });
   }
 
-  if (options.frontend === "preact" && options.ui !== "none") {
+  if (options.frontend !== "react" && options.ui !== "none") {
     unsupported.push({
       flag: `--frontend ${options.frontend} --ui ${options.ui}`,
-      note: "The Preact renderer does not include React component-library configuration.",
+      note: "React component-library configuration is only scaffolded for the React renderer.",
     });
   }
 
@@ -360,6 +367,7 @@ export const formatStackOptions = (options: StackOptions): Array<string> => {
     `dbSetup=${options.dbSetup}`,
     `settings=${options.settings}`,
     `packageManager=${options.packageManager}`,
+    `packaging=${options.packaging}`,
     `testing=${options.testing}`,
     `addons=${options.addons}`,
     `examples=${options.examples}`,

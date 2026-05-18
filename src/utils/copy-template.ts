@@ -20,8 +20,10 @@ type CopyTemplateOptions = {
 const textExtensions = new Set([
   ".css",
   ".html",
+  ".js",
   ".json",
   ".md",
+  ".svelte",
   ".ts",
   ".tsx",
   ".hbs",

@@ -2,7 +2,7 @@
   "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
   "root": false,
   "files": {
-    "includes": ["**", "!.turbo"{{#if hasTanstackRouter}}, "!src/views/main/routeTree.gen.ts"{{/if}}]
+    "includes": ["**", "!.turbo", "!.electrobun", "!.svelte-kit", "!build"{{#if hasSvelteFamilyFrontend}}, "!**/*.svelte"{{/if}}{{#if hasTanstackRouter}}, "!src/views/main/routeTree.gen.ts"{{/if}}]
   },
   "formatter": {
     "indentStyle": "space",

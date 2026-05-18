@@ -1,7 +1,7 @@
 create-electrobun-stack LLM guide
 
 Purpose:
-Scaffold an Electrobun desktop app with Bun, React or Preact, TypeScript, Vite, Biome, typed Electrobun RPC, and optional integrations. The generated project includes ces.json so future tooling can understand and expand the stack.
+Scaffold an Electrobun desktop app with Bun, React, Preact, Svelte, or SvelteKit, TypeScript, Vite, Biome, typed Electrobun RPC, and optional integrations. The generated project includes ces.json so future tooling can understand and expand the stack.
 
 Primary commands:
 
@@ -42,6 +42,7 @@ Default stack:
 --db-setup none
 --settings none
 --package-manager bun
+--packaging none
 --testing bun
 --addons none
 --examples rpc
@@ -50,7 +51,7 @@ Default stack:
 
 Generated app:
 - Bun native process in src/bun.
-- React or Preact renderer in src/views/main.
+- React, Preact, Svelte, or SvelteKit renderer in src/views/main.
 - Shared types in src/shared.
 - Typed RPC contract in src/shared/rpc/schema.ts when --api electrobun-rpc is selected.
 - ces.json manifest at project root.
@@ -72,6 +73,8 @@ Option behavior:
 - --router react-router adds React Router with HashRouter.
 - --router none renders Home directly.
 - --frontend preact adds a Preact renderer with @preact/preset-vite. It currently requires --router none, --query none, and --ui none.
+- --frontend svelte adds a direct Svelte renderer with @sveltejs/vite-plugin-svelte. It currently requires --router none, --query none, and --ui none.
+- --frontend sveltekit adds a static SvelteKit renderer with @sveltejs/adapter-static and SvelteKit file routing. It currently requires --router none, --query none, and --ui none.
 - --query tanstack-query adds @tanstack/react-query and QueryClientProvider.
 - --styling tailwindcss adds Tailwind CSS v4 and @tailwindcss/vite.
 - --styling css omits Tailwind dependencies.
@@ -94,6 +97,7 @@ Option behavior:
 - --settings json adds data/settings.json persistence and requires Electrobun RPC.
 - --settings database stores settings in SQLite and requires Electrobun RPC plus SQLite.
 - --package-manager bun|npm|pnpm|yarn controls install/run command text and package manager metadata.
+- --packaging installers adds scripts/package-electrobun.ts plus package:release, package:linux, package:mac, and package:windows scripts for AppImage, deb, DMG collection, and NSIS wrapping around Electrobun artifacts.
 - --testing bun adds bun test and tests/manifest.test.ts.
 - --testing desktop-smoke adds bun test, tests/manifest.test.ts, and tests/desktop-smoke.test.ts with mocked Electrobun launch verification.
 - --testing none omits tests.
@@ -107,7 +111,7 @@ Invalid combinations:
 - Native utility examples require Electrobun RPC.
 - RPC examples require Electrobun RPC.
 - shadcn requires Tailwind CSS.
-- Preact requires --router none, --query none, and --ui none.
+- Non-React frontends require --router none, --query none, and --ui none.
 
 Add command:
 - Reads ces.json from cwd or --cwd.
@@ -126,7 +130,7 @@ Add command:
 - Does not remove features or switch package managers/build settings.
 
 Manifest:
-- ces.json includes $schema, version, createdAt, reproducibleCommand, projectName, packageName, appIdentifier, template, stack fields, addons, examples, git, install, and features.
+- ces.json includes $schema, version, createdAt, reproducibleCommand, projectName, packageName, appIdentifier, template, stack fields, packaging, addons, examples, git, install, and features.
 - V1 manifests are additive. Unknown fields should be tolerated. Breaking manifest migrations require a documented migration path.
 - Keep ces.json in source control.
 - Prefer create-electrobun-stack add over hand-editing ces.json.

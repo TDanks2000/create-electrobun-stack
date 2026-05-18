@@ -18,7 +18,7 @@ Some categories remain intentionally narrow:
 | Category | Decision |
 | --- | --- |
 | Template | `minimal` is canonical; `standard` and `full` are accepted aliases only. |
-| Frontend | React is the default and supports router/query/UI integrations. Preact is available for smaller direct-rendered WebViews. |
+| Frontend | React is the default and supports router/query/UI integrations. Preact and Svelte are available for smaller direct-rendered WebViews. SvelteKit is available as a static WebView renderer with SvelteKit file routing. |
 | Router | `tanstack-router`, `react-router`, and `none` are distinct supported choices. |
 | Query | `tanstack-query` and `none` are enough for V1. |
 | Styling | Tailwind CSS and plain CSS cover framework and no-framework styling. |
@@ -40,6 +40,7 @@ Some categories remain intentionally narrow:
 | Native utils | File dialogs, clipboard utilities, the combined desktop kit, and `none` are supported. |
 | Window style | Native and hidden inset titlebar modes are supported. |
 | Runtime | Fixed to Bun for V1 because Electrobun runs the native process through Bun. |
+| Packaging | `installers` adds optional packaging helpers for teams that need AppImage, deb, DMG collection, and NSIS wrapping beyond Electrobun's built-in artifacts. |
 
 ## Core App
 
@@ -78,6 +79,39 @@ Relevant files:
 - `package.json`
 
 Preact currently supports direct rendering only. Use it with `--router none`, `--query none`, and `--ui none`.
+
+### `--frontend svelte`
+
+Generates a Svelte renderer for the Electrobun WebView.
+
+Relevant files:
+
+- `src/views/main/main.ts`
+- `src/views/main/App.svelte`
+- `src/views/main/Home.svelte`
+- `vite.config.ts`
+- `tsconfig.json`
+- `package.json`
+
+Svelte currently supports direct rendering only. Use it with `--router none`, `--query none`, and `--ui none`.
+
+### `--frontend sveltekit`
+
+Generates a static SvelteKit renderer for the Electrobun WebView. The SvelteKit adapter writes built files into `.electrobun/views/main`, which Electrobun packages as `views://main/index.html`.
+
+Relevant files:
+
+- `svelte.config.js`
+- `src/views/main/app.html`
+- `src/views/main/routes/+layout.svelte`
+- `src/views/main/routes/+layout.ts`
+- `src/views/main/routes/+page.svelte`
+- `src/views/main/Home.svelte`
+- `vite.config.ts`
+- `tsconfig.json`
+- `package.json`
+
+SvelteKit uses its own file routing in this template. Use it with `--router none`, `--query none`, and `--ui none`.
 
 ### `--runtime bun`
 
@@ -423,6 +457,32 @@ Controls the `electrobun build --targets=<value>` script in `package.json`.
 
 Use `current` for local builds and `all` when you are intentionally producing all configured platform targets.
 
+### `--packaging installers`
+
+Adds release packaging helpers around Electrobun's `artifacts/` output.
+
+Relevant files:
+
+- `scripts/package-electrobun.ts`
+- `package.json`
+- `tsconfig.json`
+- `README.md`
+
+Generated commands:
+
+```bash
+bun run package:release
+bun run package:linux
+bun run package:mac
+bun run package:windows
+```
+
+The script copies Electrobun artifacts, copies the generated macOS DMG, builds Linux deb packages with `dpkg-deb`, builds Linux AppImages with `appimagetool`, and builds a Windows NSIS wrapper around Electrobun's Windows setup executable with `makensis`. Run platform-specific packaging on matching OS runners.
+
+### `--packaging none`
+
+Uses Electrobun's built-in release artifacts without adding extra packaging scripts.
+
 ## Tooling
 
 ### `--package-manager bun|npm|pnpm|yarn`
@@ -490,6 +550,6 @@ The CLI validates stack choices before writing files:
 - Native utility examples require Electrobun RPC.
 - The RPC example requires Electrobun RPC.
 - shadcn/ui requires Tailwind CSS.
-- Preact requires direct rendering with no React router, TanStack Query, or shadcn config.
+- Non-React renderers require direct rendering or framework routing with no React router, TanStack Query, or shadcn config.
 
 The `add` command can infer prerequisites for additive changes. For example, adding Drizzle can also add SQLite, and adding shadcn can also add Tailwind CSS.

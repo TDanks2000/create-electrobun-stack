@@ -23,6 +23,8 @@
     "electrobun",
     "react",
     "scaffold",
+    "svelte",
+    "sveltekit",
     "typescript",
     "vite"
   ],

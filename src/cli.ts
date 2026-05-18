@@ -111,6 +111,8 @@ Usage:
   bunx create-electrobun-stack add --database sqlite
   bunx create-electrobun-stack my-app --frontend react --router tanstack-router --runtime bun --styling tailwindcss
   bunx create-electrobun-stack my-app --frontend preact --router none
+  bunx create-electrobun-stack my-app --frontend svelte --router none
+  bunx create-electrobun-stack my-app --frontend sveltekit --router none
   bun run src/index.ts my-app --no-install --git
   bun run src/index.ts add --cwd my-app --settings database
 
@@ -125,13 +127,13 @@ Defaults:
     --window-style native --app-menu edit
     --build-env dev --build-targets current
   Tooling:
-    --package-manager bun --testing bun --addons none --examples rpc
+    --package-manager bun --packaging none --testing bun --addons none --examples rpc
     --install --no-git
 
 Options:
   Core stack:
     --template minimal|standard|full
-    --frontend react|preact
+    --frontend react|preact|svelte|sveltekit
     --router tanstack-router|react-router|none
     --query none|tanstack-query
     --runtime bun
@@ -154,6 +156,7 @@ Options:
 
   Tooling and output:
     --package-manager bun|npm|pnpm|yarn
+    --packaging none|installers
     --testing bun|desktop-smoke|none
     --addons none|turborepo
     --examples rpc|none
@@ -330,7 +333,7 @@ export const parseArgs = (args: Array<string>): CliOptions => {
     stack.examples = "none";
   }
 
-  if (stack.frontend === "preact") {
+  if (stack.frontend !== "react") {
     if (!stackFlags.has("router")) {
       stack.router = "none";
     }
@@ -434,6 +437,7 @@ export const createFinalScreen = ({
   const buildCommand = getRunCommand(stack.packageManager, "build");
   const checkCommand = getRunCommand(stack.packageManager, "check");
   const lintCommand = getRunCommand(stack.packageManager, "lint");
+  const packageCommand = getRunCommand(stack.packageManager, "package:release");
   const testCommand = getRunCommand(stack.packageManager, "test");
   const typecheckCommand = getRunCommand(stack.packageManager, "typecheck");
   const nextSteps = [
@@ -470,6 +474,14 @@ export const createFinalScreen = ({
             command: buildCommand,
             detail: "Build the desktop app",
           },
+          ...(stack.packaging === "installers"
+            ? [
+                {
+                  command: packageCommand,
+                  detail: "Build installer artifacts",
+                },
+              ]
+            : []),
         ]
       : [
           {
@@ -492,6 +504,14 @@ export const createFinalScreen = ({
             command: buildCommand,
             detail: "Build the desktop app",
           },
+          ...(stack.packaging === "installers"
+            ? [
+                {
+                  command: packageCommand,
+                  detail: "Build installer artifacts",
+                },
+              ]
+            : []),
         ];
 
   return [
@@ -719,6 +739,8 @@ const isAdditiveStackChange = (change: StackChange): boolean => {
       );
     case "orm":
       return change.from === "none" && change.to === "drizzle";
+    case "packaging":
+      return change.from === "none" && change.to === "installers";
     case "settings":
       return (
         change.from === "none" &&

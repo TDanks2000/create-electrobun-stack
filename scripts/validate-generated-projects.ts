@@ -95,12 +95,35 @@ const validationCases = [
     },
   },
   {
+    name: "svelte-direct",
+    stack: {
+      ...defaultStackOptions,
+      frontend: "svelte",
+      router: "none",
+    },
+  },
+  {
+    name: "sveltekit-static",
+    stack: {
+      ...defaultStackOptions,
+      frontend: "sveltekit",
+      router: "none",
+    },
+  },
+  {
     name: "turborepo-build-targets",
     stack: {
       ...defaultStackOptions,
       addons: "turborepo",
       buildEnv: "stable",
       buildTargets: "all",
+    },
+  },
+  {
+    name: "installer-packaging",
+    stack: {
+      ...defaultStackOptions,
+      packaging: "installers",
     },
   },
   {

@@ -64,7 +64,7 @@ templates/minimal/
 `base` is always rendered. It contains the common Electrobun app:
 
 - Bun entrypoint and window creation.
-- React or Preact renderer entrypoint.
+- Shared renderer styles and framework-neutral renderer support files.
 - Shared constants and types.
 - Optional RPC, router, query, settings, and styling branches controlled by Handlebars data.
 - Generated README tailored to selected stack flags.
@@ -81,6 +81,22 @@ Adds `turbo.json` and enables Turbo scripts/dependency through the base `package
 ### `app-menu/edit`
 
 Adds `src/bun/menu.ts`. The base Bun entrypoint calls it when `--app-menu edit` is selected.
+
+### `frontend/jsx`
+
+Adds the React/Preact Vite renderer entrypoint, `App`, `Home`, and `index.html`.
+
+### `frontend/svelte-common`
+
+Adds the shared Svelte `Home.svelte` renderer used by both Svelte frontend modes.
+
+### `frontend/svelte`
+
+Adds the direct Svelte Vite entrypoint, `App.svelte`, and `index.html`.
+
+### `frontend/sveltekit`
+
+Adds SvelteKit static adapter config and routes under `src/views/main/routes`.
 
 ### `database/sqlite`
 
@@ -114,6 +130,10 @@ Adds Tailwind-specific style overlays.
 
 Plain CSS is handled by the base style templates.
 
+### `packaging/installers`
+
+Adds `scripts/package-electrobun.ts`. The base package, TypeScript, and README templates add packaging commands and references when `--packaging installers` is selected.
+
 ### `testing/bun`
 
 Adds `tests/manifest.test.ts`. The base package and TypeScript templates add the script and include path when testing is enabled.
@@ -137,6 +157,9 @@ Template data is built in `src/scaffold.ts`. Important booleans include:
 - `hasTanstackQuery`
 - `hasPreactFrontend`
 - `hasReactFrontend`
+- `hasSvelteFrontend`
+- `hasSvelteKitFrontend`
+- `hasSvelteFamilyFrontend`
 - `hasTailwind`
 - `hasShadcn`
 - `hasDatabase`
@@ -147,6 +170,7 @@ Template data is built in `src/scaffold.ts`. Important booleans include:
 - `hasDatabaseSettings`
 - `hasNativeClipboard`
 - `hasNativeFileDialogs`
+- `hasInstallerPackaging`
 - `hasDesktopSmokeTest`
 - `hasAppMenu`
 - `hasNavigationGuard`

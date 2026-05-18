@@ -299,9 +299,19 @@ export const promptStackOptions = async (
       label: "Preact WebView",
       hint: "generates a smaller direct-rendered Preact view",
     },
+    {
+      value: "svelte",
+      label: "Svelte WebView",
+      hint: "generates a direct-rendered Svelte view",
+    },
+    {
+      value: "sveltekit",
+      label: "SvelteKit WebView",
+      hint: "generates a static SvelteKit renderer",
+    },
   ]);
 
-  if (options.frontend === "preact") {
+  if (options.frontend !== "react") {
     if (!lockedOptions.has("router")) {
       options.router = "none";
     }
@@ -530,6 +540,25 @@ export const promptStackOptions = async (
         value: "yarn",
         label: "Yarn",
         hint: "uses yarn install and yarn scripts",
+      },
+    ],
+  );
+
+  await promptStackSelect(
+    options,
+    lockedOptions,
+    "packaging",
+    "Installer packaging",
+    [
+      {
+        value: "none",
+        label: "Electrobun artifacts",
+        hint: "uses Electrobun's built-in artifacts only",
+      },
+      {
+        value: "installers",
+        label: "Installer suite",
+        hint: "adds AppImage, deb, DMG, and NSIS packaging helpers",
       },
     ],
   );

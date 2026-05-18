@@ -1,0 +1,24 @@
+import adapter from "@sveltejs/adapter-static";
+import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
+
+const config = {
+  preprocess: vitePreprocess(),
+  kit: {
+    adapter: adapter({
+      assets: ".electrobun/views/main",
+      pages: ".electrobun/views/main",
+    }),
+    alias: {
+      "@": "src",
+    },
+    files: {
+      appTemplate: "src/views/main/app.html",
+      routes: "src/views/main/routes",
+    },
+    paths: {
+      relative: true,
+    },
+  },
+};
+
+export default config;

@@ -27,6 +27,12 @@ Generated with `create-electrobun-stack`.
 {{commands.dbGenerate}}
 {{commands.dbStudio}}
 {{/if}}
+{{#if hasInstallerPackaging}}
+{{commands.packageRelease}}
+{{commands.packageLinux}}
+{{commands.packageMac}}
+{{commands.packageWindows}}
+{{/if}}
 ```
 
 ## Selected Stack
@@ -72,6 +78,9 @@ Generated with `create-electrobun-stack`.
 {{/if}}
 {{#if hasShadcn}}
 - shadcn/ui project config
+{{/if}}
+{{#if hasInstallerPackaging}}
+- Extended installer packaging helpers
 {{/if}}
 
 ## Project Layout
@@ -131,6 +140,28 @@ Settings are stored in SQLite.
 {{/if}}
 
 The settings RPC surface is defined in `src/shared/rpc/schema.ts` and implemented in `src/bun/settings/store.ts`.
+{{/if}}
+{{#if hasInstallerPackaging}}
+
+## Installer Packaging
+
+Electrobun writes its release files to `artifacts/`. This project also includes `scripts/package-electrobun.ts`, which can collect those artifacts and build extra installer formats into `dist/installers`.
+
+```bash
+{{commands.packageRelease}}
+{{commands.packageLinux}}
+{{commands.packageMac}}
+{{commands.packageWindows}}
+```
+
+Platform packaging uses native tools:
+
+- macOS DMG is copied from Electrobun's generated `.dmg`.
+- Linux AppImage requires `appimagetool`.
+- Linux deb requires `dpkg-deb`.
+- Windows NSIS requires `makensis` and wraps Electrobun's Windows setup executable.
+
+Run each platform target on that platform or in a matching CI runner.
 {{/if}}
 
 ## Manifest

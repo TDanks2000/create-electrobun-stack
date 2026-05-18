@@ -1,4 +1,7 @@
 {
+{{#if hasSvelteKitFrontend}}
+  "extends": "./.svelte-kit/tsconfig.json",
+{{/if}}
   "compilerOptions": {
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
@@ -10,14 +13,30 @@
     "moduleResolution": "Bundler",
     "noEmit": true,
     "noUncheckedIndexedAccess": true,
+{{#unless hasSvelteKitFrontend}}
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
+{{/unless}}
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
     "types": ["bun"]
+{{#if hasSvelteKitFrontend}}
+  }
+{{else}}
   },
+{{#if hasInstallerPackaging}}
+  "include": [
+    "src",
+    "electrobun.config.ts",
+    "vite.config.ts"{{#if hasTesting}},
+    "tests"{{/if}}{{#if hasInstallerPackaging}},
+    "scripts"{{/if}}
+  ]
+{{else}}
   "include": ["src", "electrobun.config.ts", "vite.config.ts"{{#if hasTesting}}, "tests"{{/if}}]
+{{/if}}
+{{/if}}
 }

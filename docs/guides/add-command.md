@@ -56,6 +56,7 @@ Supported additive changes include:
 - `--query none` to `--query tanstack-query`
 - `--router none` to `--router tanstack-router` or `--router react-router`
 - `--addons none` to `--addons turborepo`
+- `--packaging none` to `--packaging installers`
 
 The command does not remove features. It also does not change `frontend`, `runtime`, `packageManager`, `buildEnv`, or `buildTargets`.
 
@@ -105,6 +106,12 @@ Add the native file dialog RPC utility:
 
 ```bash
 bunx create-electrobun-stack add --native-utils file-dialogs
+```
+
+Add installer packaging helpers:
+
+```bash
+bunx create-electrobun-stack add --packaging installers
 ```
 
 ## Conflict Behavior

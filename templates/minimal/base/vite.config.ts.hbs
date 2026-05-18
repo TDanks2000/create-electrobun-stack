@@ -1,6 +1,14 @@
+{{#unless hasSvelteKitFrontend}}
 import { fileURLToPath, URL } from "node:url";
+{{/unless}}
 {{#if hasPreactFrontend}}
 import preact from "@preact/preset-vite";
+{{/if}}
+{{#if hasSvelteKitFrontend}}
+import { sveltekit } from "@sveltejs/kit/vite";
+{{/if}}
+{{#if hasSvelteFrontend}}
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 {{/if}}
 {{#if hasTailwind}}
 import tailwindcss from "@tailwindcss/vite";
@@ -12,10 +20,19 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 {{/if}}
 import { defineConfig } from "vite";
+{{#unless hasSvelteKitFrontend}}
 
-const rendererPlugin = {{#if hasPreactFrontend}}preact{{else}}react{{/if}}();
+const rendererPlugin = {{#if hasPreactFrontend}}preact(){{else}}{{#if hasSvelteFrontend}}svelte({ configFile: false }){{else}}react(){{/if}}{{/if}};
+{{/unless}}
 
 export default defineConfig({
+{{#if hasSvelteKitFrontend}}
+{{#if hasTailwind}}
+  plugins: [tailwindcss(), sveltekit()],
+{{else}}
+  plugins: [sveltekit()],
+{{/if}}
+{{else}}
   base: "./",
   build: {
     emptyOutDir: true,
@@ -49,4 +66,5 @@ export default defineConfig({
     },
   },
   root: "src/views/main",
+{{/if}}
 });
