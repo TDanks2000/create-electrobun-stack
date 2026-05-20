@@ -1,0 +1,9 @@
+import type { Reroute } from "@sveltejs/kit";
+
+// Electrobun loads the window at views://main/index.html, so SvelteKit's router
+// sees /index.html as the path. Map it to / so the root route renders correctly.
+export const reroute: Reroute = ({ url }) => {
+  if (url.pathname === "/index.html") {
+    return "/";
+  }
+};
