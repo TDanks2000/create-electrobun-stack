@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3
+
+### Fixed
+
+- Fixes a 404 on initial app open for SvelteKit projects by adding a `reroute` hook that maps `/index.html` to `/`, correcting the mismatch between Electrobun's load URL and SvelteKit's client-side router.
+
 ## 1.2.2
 
 ### Changed
